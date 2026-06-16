@@ -4251,3 +4251,701 @@ body,
     height: 46px;
   }
 }
+
+html,
+body {
+  overflow-x: hidden;
+}
+
+.simple-header-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #dedede;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #111;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+}
+
+.simple-header-toggle span {
+  display: block;
+  width: 16px;
+  height: 1.5px;
+  background: currentColor;
+  border-radius: 999px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.simple-header-toggle[aria-expanded="true"] span:nth-child(1) {
+  transform: translateY(5.5px) rotate(45deg);
+}
+
+.simple-header-toggle[aria-expanded="true"] span:nth-child(2) {
+  opacity: 0;
+}
+
+.simple-header-toggle[aria-expanded="true"] span:nth-child(3) {
+  transform: translateY(-5.5px) rotate(-45deg);
+}
+
+@media (max-width: 1180px) {
+  .landing-grid,
+  .landing-values-grid,
+  .landing-gallery-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .landing-footer-wrap {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: flex-start;
+  }
+
+  .landing-footer-contact {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 820px) {
+  .simple-header {
+    overflow: visible;
+  }
+
+  .simple-header-inner {
+    position: relative;
+    width: calc(100% - 24px);
+    min-height: 64px;
+    gap: 14px;
+  }
+
+  .simple-header-brand {
+    font-size: 17px;
+    letter-spacing: 0.05em;
+  }
+
+  .simple-header-brand img {
+    width: 36px;
+    height: 36px;
+  }
+
+  .simple-header-toggle {
+    display: inline-flex;
+    margin-left: auto;
+  }
+
+  .simple-header-nav {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin-left: 0;
+    padding: 14px;
+    border: 1px solid #e7e1d7;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+    backdrop-filter: blur(12px);
+  }
+
+  .simple-header-nav.is-open {
+    display: flex;
+  }
+
+  .simple-header-nav a {
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 14px;
+    text-align: left;
+    border: 1px solid #efebe4;
+    background: #fbfaf7;
+  }
+
+  .hero-lunera-reference.hero-exact {
+    min-height: auto !important;
+    height: auto !important;
+    padding: 18px 0 28px !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-frame {
+    width: min(100%, calc(100vw - 24px)) !important;
+    min-height: auto !important;
+    padding-top: 14px !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-wordmark {
+    white-space: normal !important;
+    text-align: center !important;
+    font-size: clamp(42px, 12vw, 74px) !important;
+    line-height: 0.9 !important;
+    letter-spacing: 0.02em !important;
+    margin-bottom: 10px !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-canvas {
+    min-height: clamp(430px, 112vw, 620px) !important;
+    border-radius: 28px !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-main-image {
+    height: 90% !important;
+    max-width: 100% !important;
+    width: auto !important;
+    transform: translateX(-50%) translateY(4%) !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-copy-left {
+    left: 16px !important;
+    top: 16px !important;
+    max-width: min(54%, 230px) !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-copy-left p {
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-link {
+    font-size: 12px !important;
+    gap: 8px !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-arrow {
+    font-size: 24px !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-card-left {
+    left: 10px !important;
+    bottom: 12px !important;
+    width: min(30vw, 118px) !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-collection-image {
+    width: 100% !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-card-mid {
+    left: 50% !important;
+    bottom: 12px !important;
+    width: min(35vw, 150px) !important;
+    transform: translateX(-50%) !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-card-right {
+    right: 10px !important;
+    bottom: 12px !important;
+    width: min(34vw, 146px) !important;
+    height: auto !important;
+    aspect-ratio: 0.78 !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-card-mid .hero-ref-product-title,
+  .hero-lunera-reference.hero-exact .hero-ref-card-right .hero-ref-product-title {
+    top: 10px !important;
+    left: 12px !important;
+    right: 12px !important;
+    font-size: 13px !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-card-mid .hero-ref-product-meta,
+  .hero-lunera-reference.hero-exact .hero-ref-card-right .hero-ref-product-meta {
+    top: 28px !important;
+    left: 12px !important;
+    right: 12px !important;
+    font-size: 10px !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-image-caption {
+    left: 10px !important;
+    right: 10px !important;
+    bottom: 8px !important;
+    font-size: 10px !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-card-left .hero-ref-card-title {
+    bottom: 24px !important;
+    font-size: 9px !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-card-left .hero-ref-card-sub {
+    bottom: 10px !important;
+    font-size: 7px !important;
+  }
+
+  .landing-wrap,
+  .about-simple-wrap {
+    width: calc(100% - 24px);
+  }
+
+  .about-simple-wrap,
+  .landing-contact-wrap,
+  .landing-footer-wrap {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .landing-section {
+    padding: 56px 0;
+  }
+
+  .landing-products-head,
+  .landing-values-head,
+  .landing-gallery-head > div,
+  .landing-contact-copy,
+  .about-simple-copy {
+    max-width: none;
+  }
+
+  .landing-gallery-head {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 22px;
+  }
+
+  .landing-gallery-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .landing-grid,
+  .landing-values-grid,
+  .landing-gallery-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .landing-product-card,
+  .landing-value-card,
+  .landing-contact-image,
+  .about-simple-image {
+    max-width: none;
+  }
+
+  .landing-gallery-stage::before,
+  .landing-gallery-stage::after {
+    width: 48px;
+  }
+
+  .landing-gallery-track {
+    gap: 12px;
+    padding: 0 12px;
+    animation-duration: 30s;
+  }
+
+  .landing-gallery-card {
+    flex-basis: min(78vw, 250px);
+    border-radius: 22px;
+    margin-top: 0;
+  }
+
+  .landing-gallery-card:nth-child(2n),
+  .landing-gallery-card:nth-child(3n) {
+    margin-top: 0;
+  }
+
+  .landing-contact-links {
+    width: 100%;
+    margin-top: 24px;
+  }
+
+  .landing-contact-link {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 44px 14px 14px;
+  }
+
+  .landing-contact-link strong {
+    text-align: left;
+    word-break: break-word;
+  }
+
+  .landing-footer-links {
+    flex-wrap: wrap;
+  }
+
+  .landing-footer-contact {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .landing-section {
+    padding: 48px 0;
+  }
+
+  .landing-kicker {
+    margin-bottom: 10px;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+  }
+
+  .about-simple-copy h2,
+  .landing-about h2,
+  .landing-products-head h2,
+  .landing-gallery-head h2,
+  .landing-values-head h2,
+  .landing-contact h2 {
+    font-size: clamp(28px, 10vw, 42px);
+    line-height: 1.02;
+  }
+
+  .about-simple-copy p:not(.landing-kicker),
+  .landing-lead,
+  .landing-products-head p:not(.landing-kicker),
+  .landing-gallery-head p:not(.landing-kicker) {
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-frame {
+    width: calc(100vw - 16px) !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-wordmark {
+    font-size: clamp(34px, 11vw, 56px) !important;
+    line-height: 0.92 !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-canvas {
+    min-height: 490px !important;
+    border-radius: 22px !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-copy-left {
+    left: 12px !important;
+    right: 12px !important;
+    max-width: 70% !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-main-image {
+    height: 78% !important;
+    transform: translateX(-50%) translateY(11%) !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-card-left {
+    width: 92px !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-card-mid {
+    width: 112px !important;
+    bottom: 10px !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-card-right {
+    width: 110px !important;
+    bottom: 10px !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-card-left .hero-ref-card-title,
+  .hero-lunera-reference.hero-exact .hero-ref-card-left .hero-ref-card-sub {
+    right: 12px !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-card-mid .hero-ref-product-title,
+  .hero-lunera-reference.hero-exact .hero-ref-card-right .hero-ref-product-title {
+    font-size: 11px !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-card-mid .hero-ref-product-meta,
+  .hero-lunera-reference.hero-exact .hero-ref-card-right .hero-ref-product-meta {
+    font-size: 9px !important;
+  }
+
+  .landing-gallery-card {
+    flex-basis: min(82vw, 220px);
+    padding: 10px;
+  }
+
+  .landing-gallery-card figcaption {
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+    font-size: 11px;
+  }
+
+  .landing-contact-link {
+    padding-right: 38px;
+  }
+
+  .landing-contact-link::after {
+    right: 14px;
+    font-size: 18px;
+  }
+
+  .landing-footer {
+    padding: 28px 0;
+  }
+
+  .landing-footer-brand {
+    font-size: 18px;
+  }
+
+  .landing-footer-brand img {
+    width: 42px;
+    height: 42px;
+  }
+}
+
+/* Mobile drawer + simplified hero polish */
+.simple-header-backdrop {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .simple-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    overflow: visible;
+    background: rgba(255, 255, 255, 0.96);
+    border-bottom: 1px solid #ece8df;
+  }
+
+  .simple-header-inner {
+    width: calc(100% - 28px) !important;
+    min-height: 66px !important;
+  }
+
+  .simple-header-brand {
+    position: relative;
+    z-index: 1002;
+    font-size: 17px !important;
+    letter-spacing: 0.08em !important;
+  }
+
+  .simple-header-brand img {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  .simple-header-toggle {
+    position: relative;
+    z-index: 1002;
+    display: inline-flex !important;
+    margin-left: auto;
+  }
+
+  .simple-header-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    background: rgba(17, 17, 17, 0.34);
+    transition: opacity 0.24s ease, visibility 0.24s ease;
+  }
+
+  .simple-header.is-drawer-open .simple-header-backdrop {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  .simple-header-nav {
+    position: fixed !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: auto !important;
+    z-index: 1001;
+    display: flex !important;
+    width: min(82vw, 330px);
+    height: 100dvh;
+    margin: 0 !important;
+    padding: 92px 18px 24px !important;
+    flex-direction: column;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+    border: 0 !important;
+    border-left: 1px solid #e8e1d5 !important;
+    border-radius: 0 !important;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 248, 243, 0.98)),
+      #fff !important;
+    box-shadow: -28px 0 60px rgba(0, 0, 0, 0.15) !important;
+    transform: translateX(105%);
+    transition: transform 0.28s ease;
+    backdrop-filter: blur(14px);
+  }
+
+  .simple-header-nav.is-open {
+    transform: translateX(0);
+  }
+
+  .simple-header-nav a {
+    width: 100%;
+    padding: 14px 16px !important;
+    border: 1px solid #ece6dc !important;
+    border-radius: 14px !important;
+    background: rgba(255, 255, 255, 0.72) !important;
+    color: #151515 !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    text-align: left !important;
+  }
+
+  .hero-lunera-reference.hero-exact {
+    padding: 10px 0 26px !important;
+    background: #fff !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-frame {
+    width: calc(100% - 20px) !important;
+    padding-top: 0 !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-wordmark {
+    margin: 0 0 8px !important;
+    white-space: nowrap !important;
+    font-size: clamp(34px, 10vw, 76px) !important;
+    line-height: 1 !important;
+    letter-spacing: 0 !important;
+    color: #050505 !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-canvas {
+    min-height: clamp(520px, 126vw, 690px) !important;
+    height: auto !important;
+    border-radius: 0 !important;
+    background:
+      radial-gradient(circle at 78% 12%, rgba(255, 255, 255, 0.92), transparent 22%),
+      linear-gradient(180deg, #f4f4f2 0%, #eeeeeb 100%) !important;
+    overflow: hidden !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-main-image {
+    left: 54% !important;
+    bottom: 0 !important;
+    width: auto !important;
+    height: 82% !important;
+    max-width: none !important;
+    transform: translateX(-50%) translateY(2%) !important;
+    object-fit: contain !important;
+    object-position: bottom center !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-copy-left {
+    left: clamp(18px, 7vw, 42px) !important;
+    top: clamp(22px, 7vw, 48px) !important;
+    right: clamp(18px, 7vw, 42px) !important;
+    max-width: 320px !important;
+    z-index: 7 !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-copy-left p {
+    font-size: clamp(14px, 4vw, 19px) !important;
+    line-height: 1.42 !important;
+    color: #171717 !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-link {
+    margin-top: 22px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    font-size: clamp(15px, 4.4vw, 20px) !important;
+    color: #141414 !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-arrow {
+    font-size: 34px !important;
+    line-height: 1 !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-card {
+    display: none !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .simple-header-inner {
+    width: calc(100% - 22px) !important;
+    min-height: 62px !important;
+  }
+
+  .simple-header-nav {
+    width: min(86vw, 310px);
+    padding-top: 84px !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-frame {
+    width: calc(100% - 14px) !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-wordmark {
+    font-size: clamp(30px, 9.5vw, 44px) !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-canvas {
+    min-height: min(670px, calc(100svh - 118px)) !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-main-image {
+    left: 56% !important;
+    height: 76% !important;
+    transform: translateX(-50%) translateY(3%) !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-copy-left {
+    max-width: 250px !important;
+  }
+}
+
+@media (min-width: 521px) and (max-width: 900px) {
+  .hero-lunera-reference.hero-exact .hero-ref-canvas {
+    min-height: clamp(560px, 92vw, 720px) !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-main-image {
+    left: 48% !important;
+    height: 82% !important;
+    transform: translateX(-50%) translateY(2%) !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-card-left,
+  .hero-lunera-reference.hero-exact .hero-ref-card-mid {
+    display: none !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-card-right {
+    display: block !important;
+    right: clamp(14px, 3.5vw, 32px) !important;
+    bottom: clamp(22px, 5vw, 46px) !important;
+    width: clamp(128px, 23vw, 174px) !important;
+    height: auto !important;
+    aspect-ratio: 0.72 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: 0 18px 32px rgba(0, 0, 0, 0.16) !important;
+    z-index: 8 !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-card-right .hero-ref-pearl-ring-image {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    object-fit: cover !important;
+    object-position: center !important;
+  }
+
+  .hero-lunera-reference.hero-exact .hero-ref-card-right .hero-ref-image-caption {
+    left: 10px !important;
+    right: 10px !important;
+    bottom: 10px !important;
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+    color: #fff !important;
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6) !important;
+  }
+}
