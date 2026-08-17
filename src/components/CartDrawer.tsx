@@ -1,68 +1,74 @@
 import { useEffect } from 'react';
-import { type CartItem } from '../data';
+import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
+import { useCart } from '../context/CartContext';
 
 interface CartDrawerProps {
   open: boolean;
   onClose: () => void;
-  items: CartItem[];
-  fmt: (price: number) => string;
-  onRemove: (id: string) => void;
 }
 
-export function CartDrawer({ open, onClose, items, fmt, onRemove }: CartDrawerProps) {
+export function CartDrawer({ open, onClose }: CartDrawerProps) {
+  const { items, subtotal, removeFromCart } = useCart();
+  const navigate = useNavigate();
+
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [open]);
 
-  const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
+  const checkout = () => {
+    onClose();
+    navigate('/checkout');
+  };
 
-  return (
+  return createPortal(
     <>
-      <div className={`drawer-backdrop ${open ? 'on' : ''}`} onClick={onClose} />
-      <aside className={`drawer ${open ? 'on' : ''}`} aria-hidden={!open}>
-        <header className="drawer-head">
+      <div className={`cart-backdrop ${open ? 'on' : ''}`} onClick={onClose} />
+      <aside className={`cart-drawer ${open ? 'on' : ''}`} aria-hidden={!open}>
+        <header className="cart-drawer-head">
           <div>
-            <div className="eyebrow">YOUR BAG</div>
-            <div className="drawer-title">{items.length} {items.length === 1 ? 'piece' : 'pieces'}</div>
+            <div className="sf-kicker">YOUR BAG</div>
+            <div className="cart-drawer-title">{items.length} {items.length === 1 ? 'piece' : 'pieces'}</div>
           </div>
-          <button className="icon-btn" onClick={onClose} aria-label="Close">✕</button>
+          <button className="header-icon-btn" onClick={onClose} aria-label="Close">✕</button>
         </header>
 
-        <div className="drawer-body">
+        <div className="cart-drawer-body">
           {items.length === 0 ? (
-            <div className="drawer-empty">
-              <div className="display drawer-empty-t">Nothing here yet.</div>
-              <div className="drawer-empty-sub">Add a piece from the collection — or commission something new.</div>
+            <div className="cart-drawer-empty">
+              Nothing here yet. Add a piece from the shop.
             </div>
-          ) : items.map(it => (
-            <div key={it.id} className="drawer-row">
-              <div className="ph drawer-ph"><span className="ph-label sm">{it.name.slice(0, 2).toUpperCase()}</span></div>
-              <div className="drawer-meta">
-                <div className="drawer-name">{it.name}</div>
-                <div className="drawer-sub">{it.sub} · qty {it.qty}</div>
+          ) : items.map((it) => (
+            <div key={it.cartItemId} className="cart-drawer-row">
+              <div className="cart-drawer-img">
+                {it.imageUrl ? <img src={it.imageUrl} alt={it.name} /> : <span>{it.name.slice(0, 2).toUpperCase()}</span>}
               </div>
-              <div className="drawer-r">
-                <div className="silver-text drawer-price">{fmt(it.price * it.qty)}</div>
-                <button className="drawer-remove" onClick={() => onRemove(it.id)}>Remove</button>
+              <div className="cart-drawer-meta">
+                <div className="cart-drawer-name">{it.name}</div>
+                <div className="cart-drawer-sub">{it.category} · {it.silverWeightGrams}g</div>
+              </div>
+              <div className="cart-drawer-r">
+                <div className="cart-drawer-price">Rs {it.price.toLocaleString()}</div>
+                <button className="cart-drawer-remove" onClick={() => removeFromCart(it.jewelryId)}>Remove</button>
               </div>
             </div>
           ))}
         </div>
 
-        <footer className="drawer-foot">
-          <div className="drawer-totals">
-            <span className="eyebrow">SUBTOTAL</span>
-            <span className="display silver-text drawer-subtotal">{fmt(subtotal)}</span>
+        <footer className="cart-drawer-foot">
+          <div className="cart-drawer-totals">
+            <span className="sf-kicker" style={{ margin: 0 }}>SUBTOTAL</span>
+            <span className="cart-drawer-subtotal">Rs {subtotal.toLocaleString()}</span>
           </div>
-          <div className="drawer-note">Shipping & taxes calculated at checkout.</div>
-          <button className="btn btn-primary drawer-checkout" disabled={items.length === 0}>
+          <div className="cart-drawer-note">Shipping calculated at checkout.</div>
+          <button className="sf-btn sf-btn-primary cart-drawer-checkout" disabled={items.length === 0} onClick={checkout}>
             Proceed to checkout
-            <span className="arrow">→</span>
           </button>
-          <button className="drawer-cont" onClick={onClose}>Continue shopping</button>
+          <button className="cart-drawer-cont" onClick={onClose}>Continue shopping</button>
         </footer>
       </aside>
-    </>
+    </>,
+    document.body,
   );
 }
