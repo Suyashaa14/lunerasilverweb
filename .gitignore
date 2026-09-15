@@ -10,11 +10,6 @@ lerna-debug.log*
 node_modules
 *.local
 
-# Backend
-server/.env
-server/dist
-dist
-
 # Frontend
 .env
 
