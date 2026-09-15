@@ -1,22 +1,23 @@
 import { useState } from 'react';
+import { cloudinaryImages } from '../lib/cloudinaryImages';
 
 const products = [
   {
     name: 'Turtle Silver Ring',
     description: 'A playful turtle-inspired ring with a polished silver finish.',
-    image: '/turtle ring.png',
+    image: cloudinaryImages.turtleRing,
     alt: 'Turtle silver ring by Lunera Silver',
   },
   {
     name: 'Pearl Silver Top',
     description: 'A graceful pearl silver top designed for soft everyday elegance.',
-    image: '/pearlsilvertop.png',
+    image: cloudinaryImages.pearlSilverTop,
     alt: 'Pearl silver top by Lunera Silver',
   },
   {
     name: 'Square Silver Ring',
     description: 'A clean square ring with bold lines and a refined silver shine.',
-    image: '/squarering.png',
+    image: cloudinaryImages.squareRing,
     alt: 'Square silver ring by Lunera Silver',
   },
 ];
@@ -25,19 +26,19 @@ const values = [
   {
     title: 'Statement Rings',
     description: 'Polished silver rings made to add a clean shine to every look.',
-    image: '/ring2.png',
+    image: cloudinaryImages.ring2,
     alt: 'Polished silver ring by Lunera Silver',
   },
   {
     title: 'Everyday Shine',
     description: 'Elegant ring details that feel simple, refined, and easy to wear.',
-    image: '/ring1.png',
+    image: cloudinaryImages.ring1,
     alt: 'Elegant silver ring by Lunera Silver',
   },
   {
     title: 'Devotional Details',
     description: 'Ganesh lockets crafted with a graceful finish for meaningful gifting.',
-    image: '/ganeshlocket.png',
+    image: cloudinaryImages.ganeshLocket,
     alt: 'Ganesh locket by Lunera Silver',
   },
 ];
@@ -45,57 +46,57 @@ const values = [
 const galleryItems = [
   {
     name: 'Turtle Silver Ring',
-    image: '/turtle ring.png',
+    image: cloudinaryImages.turtleRing,
     alt: 'Turtle silver ring by Lunera Silver',
   },
   {
     name: 'Stone Silver Ring',
-    image: '/stonering.png',
+    image: cloudinaryImages.stoneRing,
     alt: 'Stone silver ring by Lunera Silver',
   },
   {
     name: 'Square Silver Ring',
-    image: '/squarering.png',
+    image: cloudinaryImages.squareRing,
     alt: 'Square silver ring by Lunera Silver',
   },
   {
     name: 'Lunera Ring',
-    image: '/luneraring.jpeg',
+    image: cloudinaryImages.luneraRing,
     alt: 'Lunera silver ring',
   },
   {
     name: 'Pearl Ring',
-    image: '/pearl ring.jpeg',
+    image: cloudinaryImages.pearlRing,
     alt: 'Pearl ring by Lunera Silver',
   },
   {
     name: 'Pearl Earrings',
-    image: '/pearlearring.jpeg',
+    image: cloudinaryImages.pearlEarring,
     alt: 'Pearl earrings by Lunera Silver',
   },
   {
     name: 'Statement Ring',
-    image: '/ring2.png',
+    image: cloudinaryImages.ring2,
     alt: 'Statement silver ring by Lunera Silver',
   },
   {
     name: 'Everyday Ring',
-    image: '/ring1.png',
+    image: cloudinaryImages.ring1,
     alt: 'Everyday silver ring by Lunera Silver',
   },
   {
     name: 'Ganesh Locket',
-    image: '/ganeshlocket.png',
+    image: cloudinaryImages.ganeshLocket,
     alt: 'Ganesh locket by Lunera Silver',
   },
   {
     name: 'Pearl Bracelet',
-    image: '/pearlbracelet.png',
+    image: cloudinaryImages.pearlBracelet,
     alt: 'Pearl bracelet by Lunera Silver',
   },
   {
     name: 'Pearl Silver Top',
-    image: '/pearlsilvertop.png',
+    image: cloudinaryImages.pearlSilverTop,
     alt: 'Pearl silver top by Lunera Silver',
   },
 ];
@@ -118,7 +119,7 @@ export function LandingContent() {
 
           <figure className="about-simple-image">
             <img
-              src="/pearl ring.jpeg"
+              src={cloudinaryImages.pearlRing}
               alt="Pearl ring styled by Lunera Silver"
             />
             <figcaption>Pearl ring by Lunera Silver</figcaption>
@@ -252,7 +253,7 @@ export function LandingContent() {
 
           <figure className="landing-contact-image">
             <img
-              src="/pearlbracelet.png"
+              src={cloudinaryImages.pearlBracelet}
               alt="Pearl bracelet by Lunera Silver"
             />
             <figcaption>Pearl bracelets, gifting help, and custom requests</figcaption>
@@ -264,7 +265,7 @@ export function LandingContent() {
         <div className="landing-wrap landing-footer-wrap">
           <div>
             <a className="landing-footer-brand" href="#top" aria-label="Lunera Silver home">
-              <img src="/logo.png" alt="" />
+              <img src={cloudinaryImages.logo} alt="" />
               <span>Lunera Silver</span>
             </a>
             <p>Timeless silver jewellery for everyday elegance.</p>

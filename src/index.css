@@ -2387,7 +2387,7 @@ a { color: inherit; text-decoration: none; }
   bottom: 28px;
   width: clamp(210px, 19.7vw, 340px);
   aspect-ratio: 0.76;
-  background-image: linear-gradient(to top, rgba(0, 0, 0, 0.48), rgba(0, 0, 0, 0.06)), url('/ChatGPT Image Jun 1, 2026, 11_40_59 AM (1).png');
+  background-image: linear-gradient(to top, rgba(0, 0, 0, 0.48), rgba(0, 0, 0, 0.06)), url('https://res.cloudinary.com/dpwrvmx3r/image/upload/f_auto,q_auto/v1789488023/lunerasilver/website/hero-background.png');
   background-size: cover;
   background-position: 14% 78%;
   padding: 16px;
@@ -2427,7 +2427,7 @@ a { color: inherit; text-decoration: none; }
   bottom: 28px;
   width: clamp(260px, 21.2vw, 396px);
   padding: 16px 16px 78px;
-  background-image: linear-gradient(to bottom, rgba(255,255,255,0.58), rgba(255,255,255,0.98)), url('/ChatGPT Image Jun 1, 2026, 11_40_59 AM (1).png');
+  background-image: linear-gradient(to bottom, rgba(255,255,255,0.58), rgba(255,255,255,0.98)), url('https://res.cloudinary.com/dpwrvmx3r/image/upload/f_auto,q_auto/v1789488023/lunerasilver/website/hero-background.png');
   background-size: 88%;
   background-position: center 82%;
   background-repeat: no-repeat;
@@ -2993,7 +2993,7 @@ body,
   bottom: 18px;
   width: 236px;
   height: 298px;
-  background-image: linear-gradient(to top, rgba(0,0,0,0.44), rgba(0,0,0,0.1)), url('/ChatGPT Image Jun 1, 2026, 11_40_59 AM (1).png');
+  background-image: linear-gradient(to top, rgba(0,0,0,0.44), rgba(0,0,0,0.1)), url('https://res.cloudinary.com/dpwrvmx3r/image/upload/f_auto,q_auto/v1789488023/lunerasilver/website/hero-background.png');
   background-size: cover;
   background-position: 15% 68%;
   color: #fff;
@@ -3267,7 +3267,7 @@ body,
   width: 240px !important;
   height: 300px !important;
   padding: 14px !important;
-  background-image: linear-gradient(to top, rgba(0,0,0,0.44), rgba(0,0,0,0.08)), url('/halfimage.png') !important;
+  background-image: linear-gradient(to top, rgba(0,0,0,0.44), rgba(0,0,0,0.08)), url('https://res.cloudinary.com/dpwrvmx3r/image/upload/f_auto,q_auto/v1789488027/lunerasilver/website/halfimage.png') !important;
   background-size: cover !important;
   background-position: 15% 68% !important;
 }

@@ -4,7 +4,7 @@ import { HeroHeader } from './components/HeroHeader';
 import { LandingContent } from './components/LandingContent';
 import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
-import { Shop } from './pages/Shop';
+// import { Shop } from './pages/Shop';
 import { Checkout } from './pages/Checkout';
 import { Account } from './pages/Account';
 import { AdminLayout } from './pages/admin/AdminLayout';
@@ -43,7 +43,7 @@ function App() {
     <Routes>
       <Route element={<StorefrontLayout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/shop" element={<Shop />} />
+        {/* <Route path="/shop" element={<Shop />} /> */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/checkout" element={<Checkout />} />

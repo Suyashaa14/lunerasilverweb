@@ -1,3 +1,5 @@
+import { cloudinaryImages } from '../lib/cloudinaryImages';
+
 interface HeroProps {
   fmt: (price: number) => string;
   onOpenBespoke: () => void;
@@ -18,7 +20,7 @@ export function Hero({ fmt, onOpenBespoke }: HeroProps) {
 
         <div className="hero-ref-canvas">
           <img
-            src="/my image with no background.png"
+            src={cloudinaryImages.heroMain}
             alt="Lunera hero"
             className="hero-ref-main-image"
           />
@@ -44,7 +46,7 @@ export function Hero({ fmt, onOpenBespoke }: HeroProps) {
             <div className="hero-ref-card-title">LUNERA COLLECTION</div>
             <div className="hero-ref-card-sub">Summer Edit '26</div>
             <img
-              src="/halfimage.png"
+              src={cloudinaryImages.halfImage}
               alt="Lunera Collection"
               className="hero-ref-product-image hero-ref-collection-image"
             />
@@ -53,7 +55,7 @@ export function Hero({ fmt, onOpenBespoke }: HeroProps) {
 
           <div className="hero-ref-card hero-ref-card-mid">
             <img
-              src="/luneraring.jpeg"
+              src={cloudinaryImages.luneraRing}
               alt="Lunera Ring"
               className="hero-ref-product-image hero-ref-ring-image"
             />
@@ -62,7 +64,7 @@ export function Hero({ fmt, onOpenBespoke }: HeroProps) {
 
           <div className="hero-ref-card hero-ref-card-right">
             <img
-              src="/pearlearring.jpeg"
+              src={cloudinaryImages.pearlEarring}
               alt="Silver Ring"
               className="hero-ref-product-image hero-ref-pearl-ring-image"
             />

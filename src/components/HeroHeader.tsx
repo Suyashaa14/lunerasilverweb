@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { CartDrawer } from './CartDrawer';
+import { cloudinaryImages } from '../lib/cloudinaryImages';
 
 export function HeroHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -21,7 +22,7 @@ export function HeroHeader() {
           aria-label="Lunera Silver home"
           onClick={closeMenu}
         >
-          <img src="/logo.png" alt="" />
+          <img src={cloudinaryImages.logo} alt="" />
           <span>LUNERA</span>
         </Link>
 
@@ -44,7 +45,7 @@ export function HeroHeader() {
         >
           <Link to="/#home" onClick={closeMenu}>Home</Link>
           <Link to="/#about" onClick={closeMenu}>About</Link>
-          <Link to="/shop" onClick={closeMenu}>Shop</Link>
+          {/* <Link to="/shop" onClick={closeMenu}>Shop</Link> */}
           <Link to="/#gallery" onClick={closeMenu}>Gallery</Link>
           <Link to="/#contact" onClick={closeMenu}>Contact</Link>
         </nav>
