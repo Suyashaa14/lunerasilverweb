@@ -2,6 +2,7 @@ import { Outlet, Route, Routes } from 'react-router-dom';
 import { Hero } from './components/Hero';
 import { HeroHeader } from './components/HeroHeader';
 import { LandingContent } from './components/LandingContent';
+import { ScrollToHash } from './components/ScrollToHash';
 import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
 // import { Shop } from './pages/Shop';
@@ -32,6 +33,7 @@ function Home() {
 function StorefrontLayout() {
   return (
     <>
+      <ScrollToHash />
       <HeroHeader />
       <Outlet />
     </>

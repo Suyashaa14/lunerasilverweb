@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -10,11 +10,26 @@ export function HeroHeader() {
   const [cartOpen, setCartOpen] = useState(false);
   const { user } = useAuth();
   const { items } = useCart();
+  const headerRef = useRef<HTMLElement>(null);
 
   const closeMenu = () => setIsMenuOpen(false);
 
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+
+    const setHeaderHeight = () => {
+      document.documentElement.style.setProperty('--header-height', `${el.offsetHeight}px`);
+    };
+
+    setHeaderHeight();
+    const observer = new ResizeObserver(setHeaderHeight);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <header className={`simple-header ${isMenuOpen ? 'is-drawer-open' : ''}`}>
+    <header ref={headerRef} className={`simple-header ${isMenuOpen ? 'is-drawer-open' : ''}`}>
       <div className="simple-header-inner">
         <Link
           to="/"
