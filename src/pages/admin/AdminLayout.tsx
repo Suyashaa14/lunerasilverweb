@@ -25,6 +25,9 @@ export function AdminLayout() {
   if (!user) return <Navigate to="/admin/login" state={{ from: location.pathname }} replace />;
   if (user.role !== 'admin') return <Navigate to="/" replace />;
 
+  // Routes whose page renders its own header row, bell included.
+  const ownsHeader = location.pathname === '/admin';
+
   const currentLabel = [...LINKS].reverse().find((l) =>
     l.end ? location.pathname === l.to : location.pathname.startsWith(l.to),
   )?.label ?? 'Admin';
@@ -82,8 +85,10 @@ export function AdminLayout() {
         >
           <Menu className="w-5 h-5" />
         </button>
-        <div className="text-sm font-semibold">{currentLabel}</div>
-        <AlertsBell />
+        {/* The dashboard puts its own title and bell in the page header, so the
+            mobile bar there is just the menu button. */}
+        {!ownsHeader && <div className="text-sm font-semibold">{currentLabel}</div>}
+        {!ownsHeader && <AlertsBell />}
       </div>
 
       {mobileNavOpen && (
@@ -103,9 +108,13 @@ export function AdminLayout() {
       </aside>
 
       <main className="flex-1 min-w-0 p-4 sm:p-6 md:p-8">
-        <div className="hidden md:flex justify-end mb-4">
-          <AlertsBell />
-        </div>
+        {/* Pages that build their own header put the bell in it (the dashboard
+            sits it beside the period control). Everything else gets this row. */}
+        {!ownsHeader && (
+          <div className="hidden md:flex justify-end mb-4">
+            <AlertsBell />
+          </div>
+        )}
         <Outlet />
       </main>
     </div>

@@ -4697,6 +4697,13 @@ body {
   padding-top: var(--header-height, 68px);
 }
 
+/* That padding clears the storefront's fixed header. The admin has no fixed
+   header, so there it is just dead space above the sidebar -- and it pushed the
+   page past 100vh, since .admin-shell is already min-h-screen. */
+body:has(.admin-shell) {
+  padding-top: 0;
+}
+
 .simple-header-toggle {
   display: none;
   align-items: center;
