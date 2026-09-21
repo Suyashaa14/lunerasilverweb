@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { apiGet, apiPost } from '../api/client';
+import { createContext, useContext, useState, type ReactNode } from 'react';
+import { authPost, getToken, setToken, clearToken } from '../api/client';
 
 export interface User {
   id: number;
@@ -18,36 +18,75 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+/**
+ * Reads the signed-in user out of the stored JWT.
+ *
+ * This is presentation only. The payload is base64, not a proof of anything --
+ * anyone can hand-craft one. Every route that matters is checked server-side
+ * against the signature, so the worst a forged payload achieves is a misleading
+ * name in the sidebar and API calls that come back 401.
+ */
+function readUserFromToken(token: string | null): User | null {
+  if (!token) return null;
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return null;
 
-  useEffect(() => {
-    apiGet('/auth/me')
-      .then((u) => setUser(u))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
-  }, []);
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const json = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => `%${c.charCodeAt(0).toString(16).padStart(2, '0')}`)
+        .join(''),
+    );
+    const claims = JSON.parse(json);
+
+    if (typeof claims.exp === 'number' && claims.exp * 1000 <= Date.now()) return null;
+    if (typeof claims.id !== 'number' || !claims.role) return null;
+
+    return { id: claims.id, name: claims.name, email: claims.email, role: claims.role };
+  } catch {
+    return null;
+  }
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  // Resolved synchronously from storage, so there is no signed-out flash and no
+  // bootstrap request on load.
+  const [user, setUser] = useState<User | null>(() => {
+    const existing = readUserFromToken(getToken());
+    if (!existing) clearToken();
+    return existing;
+  });
 
   const login = async (email: string, password: string) => {
-    const u = await apiPost('/auth/login', { email, password });
+    const res = await authPost('/login', { email, password });
+    setToken(res.token);
+    const u: User = { id: res.id, name: res.name, email: res.email, role: res.role };
     setUser(u);
-    return u as User;
+    return u;
   };
 
   const signup = async (name: string, email: string, password: string) => {
-    const u = await apiPost('/auth/signup', { name, email, password });
+    const res = await authPost('/signup', { name, email, password });
+    setToken(res.token);
+    const u: User = { id: res.id, name: res.name, email: res.email, role: res.role };
     setUser(u);
-    return u as User;
+    return u;
   };
 
   const logout = async () => {
-    await apiPost('/auth/logout');
+    try {
+      await authPost('/logout');
+    } catch {
+      /* nothing to tear down server-side; the token is the session */
+    }
+    clearToken();
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading: false, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );
