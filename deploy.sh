@@ -2,7 +2,7 @@
 
 set -e
 
-SOURCE_DIR="/home/luneraon/public_html/lunerasilverweb/dist"
+SOURCE_DIR="$(pwd)/dist"
 TARGET_DIR="/home/luneraon/public_html"
 
 echo "🚀 Starting frontend deployment..."
@@ -13,16 +13,18 @@ if [ ! -d "$SOURCE_DIR" ]; then
     exit 1
 fi
 
-echo "🧹 Cleaning old frontend files..."
+echo "📦 Build found:"
+echo "$SOURCE_DIR"
 
-find "$TARGET_DIR" -mindepth 1 \
+echo "🧹 Removing old deployed files..."
+
+find "$TARGET_DIR" -mindepth 1 -maxdepth 1 \
     ! -name ".htaccess" \
-    ! -path "$TARGET_DIR/lunerasilverweb" \
-    ! -path "$TARGET_DIR/lunerasilverweb/*" \
+    ! -name "lunerasilverweb" \
     -exec rm -rf {} +
 
-echo "📦 Copying new build..."
+echo "📦 Copying build to public_html..."
 
-cp -R "$SOURCE_DIR/." "$TARGET_DIR/"
+cp -a "$SOURCE_DIR/." "$TARGET_DIR/"
 
 echo "✅ Frontend deployed successfully!"
