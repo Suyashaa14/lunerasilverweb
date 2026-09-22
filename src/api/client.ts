@@ -1,7 +1,9 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
-// Auth is mounted at the server root rather than under /api, so it never passes
-// through the gate that rejects untokened requests.
-const AUTH_URL = import.meta.env.VITE_AUTH_URL || `${API_URL.replace(/\/api\/?$/, '')}/auth`;
+// Base URL is the server origin only. Each call appends its own mount, so /api
+// is never carried in configuration and cannot be left out of it. A trailing
+// slash or a leftover /api suffix is stripped so the value cannot break the URL.
+const BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:4000')
+  .replace(/\/+$/, '')
+  .replace(/\/api$/, '');
 
 const TOKEN_KEY = 'lunera.token';
 
@@ -71,7 +73,7 @@ export function apiGet(path: string) {
   const pending = inFlightGets.get(path);
   if (pending) return pending;
 
-  const request = fetch(`${API_URL}${path}`, { headers: withAuth() })
+  const request = fetch(`${BASE_URL}/api${path}`, { headers: withAuth() })
     .then(handle)
     .finally(() => inFlightGets.delete(path));
 
@@ -80,7 +82,7 @@ export function apiGet(path: string) {
 }
 
 export function apiPost(path: string, body?: unknown) {
-  return fetch(`${API_URL}${path}`, {
+  return fetch(`${BASE_URL}/api${path}`, {
     method: 'POST',
     headers: withAuth(body ? { 'Content-Type': 'application/json' } : undefined),
     body: body ? JSON.stringify(body) : undefined,
@@ -88,7 +90,7 @@ export function apiPost(path: string, body?: unknown) {
 }
 
 export function apiPatch(path: string, body?: unknown) {
-  return fetch(`${API_URL}${path}`, {
+  return fetch(`${BASE_URL}/api${path}`, {
     method: 'PATCH',
     headers: withAuth({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(body ?? {}),
@@ -96,7 +98,7 @@ export function apiPatch(path: string, body?: unknown) {
 }
 
 export function apiPut(path: string, body?: unknown) {
-  return fetch(`${API_URL}${path}`, {
+  return fetch(`${BASE_URL}/api${path}`, {
     method: 'PUT',
     headers: withAuth(body ? { 'Content-Type': 'application/json' } : undefined),
     body: body ? JSON.stringify(body) : undefined,
@@ -104,12 +106,12 @@ export function apiPut(path: string, body?: unknown) {
 }
 
 export function apiDelete(path: string) {
-  return fetch(`${API_URL}${path}`, { method: 'DELETE', headers: withAuth() }).then(handle);
+  return fetch(`${BASE_URL}/api${path}`, { method: 'DELETE', headers: withAuth() }).then(handle);
 }
 
 export function apiUpload(path: string, method: 'POST' | 'PUT', formData: FormData) {
   // No Content-Type here on purpose: the browser sets the multipart boundary.
-  return fetch(`${API_URL}${path}`, {
+  return fetch(`${BASE_URL}/api${path}`, {
     method,
     headers: withAuth(),
     body: formData,
@@ -118,7 +120,7 @@ export function apiUpload(path: string, method: 'POST' | 'PUT', formData: FormDa
 
 // Login / signup / logout live at the base level, outside /api.
 export function authPost(path: string, body?: unknown) {
-  return fetch(`${AUTH_URL}${path}`, {
+  return fetch(`${BASE_URL}/auth${path}`, {
     method: 'POST',
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
