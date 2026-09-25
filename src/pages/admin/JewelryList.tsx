@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { apiDelete, apiGet } from '../../api/client';
+import { ApiError, apiGet, apiPost } from '../../api/client';
 import { Pagination } from './Pagination';
 
 interface Jewelry {
@@ -37,10 +37,33 @@ export function JewelryList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
-  const remove = async (id: number) => {
-    if (!confirm('Delete this jewelry piece? This cannot be undone.')) return;
-    await apiDelete(`/jewelries/${id}`);
-    load();
+  // Pieces are never deleted -- invoice lines and stock rows point at them.
+  // Retiring writes one outbound row to the stock ledger so the count still adds up.
+  const retire = async (id: number) => {
+    const status = prompt(
+      'Take this piece off the shelf.\n\nType one of:\n' +
+        '  damaged  - it broke\n' +
+        '  lost     - it is missing\n' +
+        '  voided   - it was entered by mistake and never existed',
+    );
+    if (status === null) return;
+    const chosen = status.trim().toLowerCase();
+    if (!['damaged', 'lost', 'voided'].includes(chosen)) {
+      alert('Type damaged, lost or voided.');
+      return;
+    }
+    const reason = prompt('Why? This is kept in the stock history.');
+    if (reason === null) return;
+    if (reason.trim() === '') {
+      alert('A reason is required.');
+      return;
+    }
+    try {
+      await apiPost(`/jewelries/${id}/retire`, { status: chosen, reason: reason.trim() });
+      load();
+    } catch (err) {
+      alert(err instanceof ApiError ? err.message : 'Could not retire this piece.');
+    }
   };
 
   return (
@@ -93,7 +116,7 @@ export function JewelryList() {
                 <td className="px-4 py-3">
                   <div className="flex gap-3">
                     <Link to={`/admin/jewelries/${j.id}/edit`} className="text-neutral-600 hover:text-neutral-900 underline">Edit</Link>
-                    <button onClick={() => remove(j.id)} className="text-red-600 hover:text-red-800 underline">Delete</button>
+                    <button onClick={() => retire(j.id)} className="text-red-600 hover:text-red-800 underline">Retire</button>
                   </div>
                 </td>
               </tr>

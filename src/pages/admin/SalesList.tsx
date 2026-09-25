@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { apiDelete, apiGet } from '../../api/client';
+import { apiGet } from '../../api/client';
 import { DateRangeFilter } from './DateRangeFilter';
 import { Pagination } from './Pagination';
 
@@ -66,11 +66,8 @@ export function SalesList() {
     setPage(1);
   };
 
-  const remove = async (id: number) => {
-    if (!confirm('Delete this sale record? This cannot be undone.')) return;
-    await apiDelete(`/sales/${id}`);
-    load();
-  };
+  // The sales table is retired and read-only. Counter sales become invoices,
+  // so there is nothing to delete here any more.
 
   return (
     <div>
@@ -146,7 +143,7 @@ export function SalesList() {
                 <td className="px-4 py-3">
                   <div className="flex gap-3 whitespace-nowrap">
                     <Link to={`/admin/sales/${s.id}/edit`} className="text-neutral-600 hover:text-neutral-900 underline">Edit</Link>
-                    <button onClick={() => remove(s.id)} className="text-red-600 hover:text-red-800 underline">Delete</button>
+
                   </div>
                 </td>
               </tr>

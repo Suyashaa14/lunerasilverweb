@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { apiDelete, apiGet } from '../../api/client';
+import { ApiError, apiGet, apiPost } from '../../api/client';
 import { DateRangeFilter } from './DateRangeFilter';
 import { Pagination } from './Pagination';
 
@@ -54,10 +54,21 @@ export function ExpensesList() {
     setPage(1);
   };
 
-  const remove = async (id: number) => {
-    if (!confirm('Delete this expense record? This cannot be undone.')) return;
-    await apiDelete(`/expenses/${id}`);
-    load();
+  // Expenses are never deleted. Voiding keeps the row and its number, takes it
+  // out of every total, and records who cancelled it and why.
+  const voidExpense = async (id: number) => {
+    const reason = prompt('Why is this expense being voided?\n\nThe record stays but stops counting.');
+    if (reason === null) return;
+    if (reason.trim() === '') {
+      alert('A reason is required.');
+      return;
+    }
+    try {
+      await apiPost(`/expenses/${id}/void`, { reason: reason.trim() });
+      load();
+    } catch (err) {
+      alert(err instanceof ApiError ? err.message : 'Could not void this expense.');
+    }
   };
 
   return (
@@ -105,7 +116,7 @@ export function ExpensesList() {
                 <td className="px-4 py-3">
                   <div className="flex gap-3 whitespace-nowrap">
                     <Link to={`/admin/expenses/${e.id}/edit`} className="text-neutral-600 hover:text-neutral-900 underline">Edit</Link>
-                    <button onClick={() => remove(e.id)} className="text-red-600 hover:text-red-800 underline">Delete</button>
+                    <button onClick={() => voidExpense(e.id)} className="text-red-600 hover:text-red-800 underline">Void</button>
                   </div>
                 </td>
               </tr>
