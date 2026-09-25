@@ -41,13 +41,13 @@ const SECTIONS: NavSection[] = [
   {
     title: 'Money',
     links: [
-      { to: '/admin/payments', label: 'Payments', soon: true },
+      { to: '/admin/payments', label: 'Payments' },
       { to: '/admin/expenses', label: 'Expenses' },
     ],
   },
   {
     title: 'People',
-    links: [{ to: '/admin/customers', label: 'Customers', soon: true }],
+    links: [{ to: '/admin/customers', label: 'Customers' }],
   },
   {
     title: 'Books',

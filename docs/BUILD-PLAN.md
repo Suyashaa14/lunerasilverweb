@@ -157,22 +157,48 @@ What that buys, beyond looks:
 
 ---
 
-## Phase F1 — Close the daily loop
+## Phase F1 — Close the daily loop · `COMPLETE` (F1.3 partial)
 
-### Step F1.1 — Customers · `TODO`
-List with search, detail with their invoice history and what they owe, create
-and edit. **Done when** a buyer can be found by phone and their outstanding
-balance is visible without opening each invoice.
+### Step F1.1 — Customers · `DONE`
+`CustomerList` (search by name, phone or email; add) and `CustomerDetail`
+(contact details, three totals — invoices, spent, **still owes** — and their
+whole invoice history with per-invoice outstanding).
 
-### Step F1.2 — Payments · `TODO`
-List with a **pending queue** — eSewa and bank transfers waiting to be checked
-against a statement — plus verify, reject and refund. **Done when** money that
-has arrived but is unverified is visible in one place, because today nothing
-surfaces it.
+Needed one backend addition: `GET /api/invoices?customerId=`. Without it the
+detail page would have had to pull every invoice and filter in the browser.
 
-### Step F1.3 — Invoice print layout · `BLOCKED (F1)`
-A real printable tax invoice rather than the screen. Blocked until the required
-layout is known.
+Verified with real data: a part-paid invoice shows `total 2480.50 · paid 500 ·
+owes 1980.50` on the customer's page, without opening the invoice.
+
+### Step F1.2 — Payments · `DONE`
+`PaymentList` with four tabs — **Needs checking**, Confirmed, Rejected, All —
+and a count badge on the first. Confirm and Reject act on a pending row;
+rejecting demands a reason.
+
+Two backend additions: `GET /api/payments?status=` and
+`GET /api/payments/pending-count`. The list now carries the **invoice number and
+buyer name** on every row, because a queue of bare amounts cannot be checked
+against a bank statement.
+
+Verified: a 700 bank transfer sat in Needs checking with its reference
+`TXN-99812`, confirming it moved the invoice balance from 500 paid to 1,200.
+
+**Why this screen matters.** Cash is counted the moment it is taken. Everything
+else — eSewa, bank transfer — waits as pending until somebody checks it against
+a statement, and until now nothing anywhere surfaced that. Money could sit
+unconfirmed indefinitely with no way to notice.
+
+### Step F1.3 — Invoice print layout · `BLOCKED (F1)` — partially improved
+
+Still blocked on whether IRD prescribes a format.
+
+**Done anyway, because it cannot be wasted:** a print stylesheet in `index.css`.
+Printing an invoice was printing the entire admin shell — sidebar, menu button
+and action buttons all landed on the customer's copy. Those are now hidden, the
+page prints full width, and cards no longer break across pages.
+
+What is still outstanding is the **content and wording** a compliant Nepali tax
+invoice must carry. That is the part worth asking about before building.
 
 ---
 
@@ -259,4 +285,8 @@ before worrying about how it looks.
 | 2026-09-26 | F0.2 | Shared `format.ts` and `ui.tsx`; one `STATUS_STYLE` replacing four copies. **DONE**. |
 | 2026-09-26 | F0.3 | `Dialog.tsx`; 8 browser prompts replaced across 4 screens. **DONE**. |
 | 2026-09-26 | F0.1 | Grouped role-aware sidebar; unbuilt screens greyed out. **DONE**. |
-| 2026-09-26 | — | **Phase F0 complete.** Next: F2.1 → F2.2 (suppliers → purchases) to make margins real. |
+| 2026-09-26 | — | **Phase F0 complete.** |
+| 2026-09-26 | F1.1 | Customers list + detail with outstanding balance. Backend: `?customerId=`. **DONE**. |
+| 2026-09-26 | F1.2 | Payments queue with confirm/reject. Backend: `?status=`, `/pending-count`. **DONE**. |
+| 2026-09-26 | F1.3 | Print stylesheet — the admin shell no longer prints onto invoices. Format still blocked. |
+| 2026-09-26 | — | **Phase F1 complete** bar the statutory print format. Next: F2.1 → F2.2. |

@@ -5398,3 +5398,39 @@ body:has(.admin-shell) {
     text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6) !important;
   }
 }
+
+
+/* ---------------------------------------------------------------------------
+   Printing an invoice.
+   The admin shell is navigation, not part of the document. Without this the
+   sidebar, menu button and action buttons all print onto the customer's copy.
+   The layout itself is still the screen layout -- a prescribed IRD format is
+   decision D3 and is not settled yet.
+--------------------------------------------------------------------------- */
+@media print {
+  .admin-shell > aside,
+  .admin-shell > .md\:hidden,
+  .admin-nav-link {
+    display: none !important;
+  }
+
+  .admin-shell {
+    display: block !important;
+    background: #fff !important;
+  }
+
+  .admin-shell main {
+    padding: 0 !important;
+  }
+
+  /* Cards should read as one document, not a stack of floating boxes. */
+  .admin-shell .rounded-xl {
+    border-color: #ddd !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  a[href]::after {
+    content: none !important;
+  }
+}

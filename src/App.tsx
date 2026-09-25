@@ -19,6 +19,9 @@ import { SettingsPage } from './pages/admin/SettingsPage';
 import { InvoiceList } from './pages/admin/InvoiceList';
 import { InvoiceDetail } from './pages/admin/InvoiceDetail';
 import { CounterSale } from './pages/admin/CounterSale';
+import { CustomerList } from './pages/admin/CustomerList';
+import { CustomerDetail } from './pages/admin/CustomerDetail';
+import { PaymentList } from './pages/admin/PaymentList';
 import { ExpensesList } from './pages/admin/ExpensesList';
 import { ExpenseForm } from './pages/admin/ExpenseForm';
 import { AnalyticsPage } from './pages/admin/AnalyticsPage';
@@ -66,6 +69,9 @@ function App() {
         <Route path="invoices" element={<InvoiceList />} />
         <Route path="invoices/new" element={<CounterSale />} />
         <Route path="invoices/:id" element={<InvoiceDetail />} />
+        <Route path="customers" element={<CustomerList />} />
+        <Route path="customers/:id" element={<CustomerDetail />} />
+        <Route path="payments" element={<PaymentList />} />
         <Route path="expenses" element={<ExpensesList />} />
         <Route path="expenses/new" element={<ExpenseForm />} />
         <Route path="expenses/:id/edit" element={<ExpenseForm />} />
