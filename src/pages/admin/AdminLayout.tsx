@@ -8,7 +8,7 @@ const LINKS = [
   { to: '/admin', label: 'Dashboard', end: true },
   { to: '/admin/jewelries', label: 'Jewelries' },
   { to: '/admin/orders', label: 'Orders' },
-  { to: '/admin/sales', label: 'Sales' },
+  { to: '/admin/invoices', label: 'Invoices' },
   { to: '/admin/expenses', label: 'Expenses' },
   { to: '/admin/analytics', label: 'Analytics' },
   { to: '/admin/settings', label: 'Settings' },

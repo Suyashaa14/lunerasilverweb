@@ -15,8 +15,9 @@ import { JewelryList } from './pages/admin/JewelryList';
 import { JewelryForm } from './pages/admin/JewelryForm';
 import { OrdersList } from './pages/admin/OrdersList';
 import { SettingsPage } from './pages/admin/SettingsPage';
-import { SalesList } from './pages/admin/SalesList';
-import { SaleForm } from './pages/admin/SaleForm';
+import { InvoiceList } from './pages/admin/InvoiceList';
+import { InvoiceDetail } from './pages/admin/InvoiceDetail';
+import { CounterSale } from './pages/admin/CounterSale';
 import { ExpensesList } from './pages/admin/ExpensesList';
 import { ExpenseForm } from './pages/admin/ExpenseForm';
 import { AnalyticsPage } from './pages/admin/AnalyticsPage';
@@ -60,9 +61,9 @@ function App() {
         <Route path="jewelries/new" element={<JewelryForm />} />
         <Route path="jewelries/:id/edit" element={<JewelryForm />} />
         <Route path="orders" element={<OrdersList />} />
-        <Route path="sales" element={<SalesList />} />
-        <Route path="sales/new" element={<SaleForm />} />
-        <Route path="sales/:id/edit" element={<SaleForm />} />
+        <Route path="invoices" element={<InvoiceList />} />
+        <Route path="invoices/new" element={<CounterSale />} />
+        <Route path="invoices/:id" element={<InvoiceDetail />} />
         <Route path="expenses" element={<ExpensesList />} />
         <Route path="expenses/new" element={<ExpenseForm />} />
         <Route path="expenses/:id/edit" element={<ExpenseForm />} />
