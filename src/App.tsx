@@ -13,6 +13,7 @@ import { AdminLogin } from './pages/admin/AdminLogin';
 import { DashboardHome } from './pages/admin/DashboardHome';
 import { JewelryList } from './pages/admin/JewelryList';
 import { JewelryForm } from './pages/admin/JewelryForm';
+import { JewelryDetail } from './pages/admin/JewelryDetail';
 import { OrdersList } from './pages/admin/OrdersList';
 import { SettingsPage } from './pages/admin/SettingsPage';
 import { InvoiceList } from './pages/admin/InvoiceList';
@@ -59,6 +60,7 @@ function App() {
         <Route index element={<DashboardHome />} />
         <Route path="jewelries" element={<JewelryList />} />
         <Route path="jewelries/new" element={<JewelryForm />} />
+        <Route path="jewelries/:id" element={<JewelryDetail />} />
         <Route path="jewelries/:id/edit" element={<JewelryForm />} />
         <Route path="orders" element={<OrdersList />} />
         <Route path="invoices" element={<InvoiceList />} />

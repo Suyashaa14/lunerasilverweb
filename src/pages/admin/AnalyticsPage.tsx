@@ -96,14 +96,14 @@ export function AnalyticsPage() {
   const [inventoryValue, setInventoryValue] = useState<number | null>(null);
 
   useEffect(() => {
-    apiGet('/sales/summary').then(setSalesSummary);
-    apiGet('/sales/by-category').then(setByCategory);
-    apiGet('/sales/by-product').then(setByProduct);
+    apiGet('/invoices/summary').then(setSalesSummary);
+    apiGet('/invoices/by-category').then(setByCategory);
+    apiGet('/invoices/by-product').then(setByProduct);
     apiGet('/jewelries?status=available&pageSize=200').then((res: { data: Jewelry[] }) => {
       setInventoryValue(res.data.reduce((sum, j) => sum + j.price, 0));
     });
 
-    Promise.all([apiGet('/sales/monthly'), apiGet('/expenses/monthly')]).then(
+    Promise.all([apiGet('/invoices/monthly'), apiGet('/expenses/monthly')]).then(
       ([salesMonthly, expensesMonthly]: [SalesMonthlyPoint[], ExpensesMonthlyPoint[]]) => {
         const byMonth = new Map<string, { revenue: number; cost: number; profit: number; expenses: number }>();
         salesMonthly.forEach((p) => byMonth.set(p.month, { revenue: p.revenue, cost: p.cost, profit: p.profit, expenses: 0 }));
