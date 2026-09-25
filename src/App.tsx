@@ -22,6 +22,11 @@ import { CounterSale } from './pages/admin/CounterSale';
 import { CustomerList } from './pages/admin/CustomerList';
 import { CustomerDetail } from './pages/admin/CustomerDetail';
 import { PaymentList } from './pages/admin/PaymentList';
+import { SupplierList } from './pages/admin/SupplierList';
+import { PurchaseList } from './pages/admin/PurchaseList';
+import { PurchaseForm } from './pages/admin/PurchaseForm';
+import { PurchaseDetail } from './pages/admin/PurchaseDetail';
+import { StockCheck } from './pages/admin/StockCheck';
 import { ExpensesList } from './pages/admin/ExpensesList';
 import { ExpenseForm } from './pages/admin/ExpenseForm';
 import { AnalyticsPage } from './pages/admin/AnalyticsPage';
@@ -69,6 +74,11 @@ function App() {
         <Route path="invoices" element={<InvoiceList />} />
         <Route path="invoices/new" element={<CounterSale />} />
         <Route path="invoices/:id" element={<InvoiceDetail />} />
+        <Route path="stock-check" element={<StockCheck />} />
+        <Route path="suppliers" element={<SupplierList />} />
+        <Route path="purchases" element={<PurchaseList />} />
+        <Route path="purchases/new" element={<PurchaseForm />} />
+        <Route path="purchases/:id" element={<PurchaseDetail />} />
         <Route path="customers" element={<CustomerList />} />
         <Route path="customers/:id" element={<CustomerDetail />} />
         <Route path="payments" element={<PaymentList />} />

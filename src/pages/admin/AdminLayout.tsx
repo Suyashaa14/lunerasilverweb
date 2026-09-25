@@ -34,8 +34,9 @@ const SECTIONS: NavSection[] = [
     title: 'Stock',
     links: [
       { to: '/admin/jewelries', label: 'Jewellery' },
-      { to: '/admin/purchases', label: 'Purchases', soon: true },
-      { to: '/admin/suppliers', label: 'Suppliers', soon: true },
+      { to: '/admin/purchases', label: 'Purchases', end: true },
+      { to: '/admin/suppliers', label: 'Suppliers' },
+      { to: '/admin/stock-check', label: 'Stock check' },
     ],
   },
   {

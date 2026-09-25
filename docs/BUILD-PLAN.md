@@ -202,26 +202,57 @@ invoice must carry. That is the part worth asking about before building.
 
 ---
 
-## Phase F2 — Stock and buying
+## Phase F2 — Stock and buying · `COMPLETE`
 
-### Step F2.1 — Suppliers · `TODO`
-List, create, edit, deactivate. Small, and F2.2 needs it.
+### Step F2.1 — Suppliers · `DONE`
+`SupplierList` — list, add, edit, deactivate, and a **Show inactive** toggle.
+No delete: a supplier's name is on bills you have to keep, so deactivating just
+takes them out of the dropdown.
 
-### Step F2.2 — Purchase bills · `TODO`
-**The most valuable screen in this plan.** List, and a new-bill form whose lines
-can each book a piece into stock. **Done when** entering a supplier bill creates
-the pieces with their cost price, and the jewellery list stops showing
-`not set` in red.
+### Step F2.2 — Purchase bills · `DONE`
+`PurchaseList`, `PurchaseForm`, `PurchaseDetail`.
 
-### Step F2.3 — Jewellery form rebuild · `TODO`
-Per the approved mockup: identity, silver and making, stone, cost and source
-(linked to a purchase bill line), photo, with the live **Selling price today**
-and **Margin check** panels.
-**Done when** the price panel matches the piece's detail page to the rupee.
+Each line on the form has a **Put this on the shelf as a piece** tick. Ticked, it
+reveals the piece fields and the line becomes stock carrying what you paid.
+Unticked, it is spend only — packaging, freight, tools.
 
-### Step F2.4 — Stock check · `TODO`
-Surface `GET /api/inventory/reconcile` — any piece whose ledger disagrees with
-its status. **Done when** a disagreement is visible without curl.
+A running total shows goods, VAT, TDS and what you owe, and an **On save** panel
+says in words what is about to happen: *"2 pieces will appear in Jewellery, each
+carrying what you paid for it."*
+
+Verified end to end: a bill with one ring at 2,150 and one packaging line
+produced a piece with `cost 2150` and no piece for the packaging. The jewellery
+list stopped showing `not set` for it.
+
+The detail page states plainly that a supplier bill cannot be edited or deleted,
+because it is evidence.
+
+### Step F2.3 — Jewellery form rebuild · `DONE`
+Rebuilt to the mockup: Identity, Silver and making, Stone, Photo, with the live
+**Selling price today** and **Margin check** panels on the right, recalculating
+as you type.
+
+Two deliberate differences from the mockup:
+
+- **Cost price is read-only when editing.** It comes from the purchase bill the
+  piece arrived on. A hand-typed cost that disagrees with the bill would make
+  every margin a guess, so the panel explains where cost comes from instead of
+  inviting one.
+- **Status is read-only.** Sold and reserved are set by selling; retiring is on
+  the detail page. Letting the form set them would let a piece be marked sold
+  with no invoice behind it.
+
+The **On save** panel warns that a piece added here has no bill behind it, and
+points at Purchases instead.
+
+### Step F2.4 — Stock check · `DONE`
+`StockCheck` — a single count of disagreements, green at zero, with each problem
+piece showing what the ledger says against what its status implies.
+
+Pieces with **no ledger history at all** are listed separately and explained,
+rather than flagged as errors: they predate the ledger or were added without a
+bill, which is a gap in history, not a contradiction. Currently 1 such piece and
+0 disagreements.
 
 ---
 
@@ -289,4 +320,9 @@ before worrying about how it looks.
 | 2026-09-26 | F1.1 | Customers list + detail with outstanding balance. Backend: `?customerId=`. **DONE**. |
 | 2026-09-26 | F1.2 | Payments queue with confirm/reject. Backend: `?status=`, `/pending-count`. **DONE**. |
 | 2026-09-26 | F1.3 | Print stylesheet — the admin shell no longer prints onto invoices. Format still blocked. |
-| 2026-09-26 | — | **Phase F1 complete** bar the statutory print format. Next: F2.1 → F2.2. |
+| 2026-09-26 | — | **Phase F1 complete** bar the statutory print format. |
+| 2026-09-26 | F2.1 | Suppliers list with deactivate. **DONE**. |
+| 2026-09-26 | F2.2 | Purchase bills — list, form with per-line stock-in, detail. Cost price is real. **DONE**. |
+| 2026-09-26 | F2.3 | Jewellery form rebuilt with live price and margin panels. **DONE**. |
+| 2026-09-26 | F2.4 | Stock check surfacing ledger disagreements. **DONE**. |
+| 2026-09-26 | — | **Phase F2 complete.** Next: F3 — the books (reports and ledger). |
