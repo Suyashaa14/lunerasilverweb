@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ApiError, apiGet, apiPost } from '../../api/client';
+import { Dialog, useDialog } from '../../components/admin/Dialog';
+import { StatusPill } from '../../components/admin/ui';
+import { money as num } from '../../components/admin/format';
 
 interface Movement {
   id: number; type: string; direction: 'in' | 'out';
@@ -22,15 +25,6 @@ interface Detail {
   movements: Movement[];
 }
 
-const num = (v: number) => v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const STATUS: Record<string, string> = {
-  available: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  reserved: 'border-amber-200 bg-amber-50 text-amber-700',
-  sold: 'border-neutral-200 text-neutral-500',
-  damaged: 'border-red-200 bg-red-50 text-red-700',
-  lost: 'border-red-200 bg-red-50 text-red-700',
-  voided: 'border-neutral-200 text-neutral-400',
-};
 
 function Card({ title, right, children }: { title: string; right?: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -48,6 +42,7 @@ export function JewelryDetail() {
   const { id } = useParams();
   const [p, setP] = useState<Detail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const dialog = useDialog();
 
   const load = useCallback(() => {
     apiGet(`/jewelries/${id}/detail`).then(setP).catch(() => setError('Could not load this piece.'));
@@ -55,10 +50,16 @@ export function JewelryDetail() {
   useEffect(load, [load]);
 
   const retire = async (status: string) => {
-    const reason = prompt(`Mark this piece ${status}. Why?\n\nKept in the stock history.`);
-    if (reason === null || reason.trim() === '') return;
-    try { await apiPost(`/jewelries/${id}/retire`, { status, reason: reason.trim() }); load(); }
-    catch (err) { alert(err instanceof ApiError ? err.message : 'That did not work.'); }
+    const answer = await dialog.ask({
+      title: `Mark this piece ${status}`,
+      description: 'The piece stays for the history. One row is written to the stock ledger so the count still adds up.',
+      confirmLabel: 'Confirm',
+      tone: 'danger',
+      fields: [{ name: 'reason', label: 'Reason', type: 'textarea', help: 'Kept in the stock history.' }],
+    });
+    if (!answer) return;
+    try { await apiPost(`/jewelries/${id}/retire`, { status, reason: answer.reason }); load(); }
+    catch (err) { setError(err instanceof ApiError ? err.message : 'That did not work.'); }
   };
 
   if (error) return <div className="text-red-700">{error}</div>;
@@ -69,6 +70,7 @@ export function JewelryDetail() {
 
   return (
     <div className="max-w-[1300px]">
+      <Dialog request={dialog.request} onSettle={dialog.settle} />
       <header className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <div className="text-sm text-neutral-500">
@@ -76,7 +78,7 @@ export function JewelryDetail() {
           </div>
           <div className="flex flex-wrap items-center gap-3 mt-1">
             <h1 className="text-3xl font-semibold tracking-tight">{p.name}</h1>
-            <span className={`px-2.5 py-1 rounded-md border text-sm capitalize ${STATUS[p.status] ?? 'border-neutral-200'}`}>{p.status}</span>
+            <StatusPill status={p.status} className="text-sm" />
             <span className="font-mono tabular-nums text-neutral-400">{p.sku}</span>
           </div>
         </div>

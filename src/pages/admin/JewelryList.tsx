@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ApiError, apiGet, apiPost } from '../../api/client';
+import { Dialog, useDialog } from '../../components/admin/Dialog';
+import { ErrorNote, EmptyState, StatusPill } from '../../components/admin/ui';
+import { num, grams } from '../../components/admin/format';
 
 interface Piece {
   id: number; sku: string; name: string; category: string; status: string;
@@ -16,18 +19,6 @@ interface Catalogue {
   staleDays: number;
 }
 
-const num = (v: number) => Math.round(v).toLocaleString();
-const grams = (v: number) => v.toFixed(3);
-
-const STATUS: Record<string, string> = {
-  available: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  reserved: 'border-amber-200 bg-amber-50 text-amber-700',
-  sold: 'border-neutral-200 text-neutral-500',
-  damaged: 'border-red-200 bg-red-50 text-red-700',
-  lost: 'border-red-200 bg-red-50 text-red-700',
-  voided: 'border-neutral-200 text-neutral-400',
-};
-
 export function JewelryList() {
   const [cat, setCat] = useState<Catalogue | null>(null);
   const [search, setSearch] = useState('');
@@ -35,6 +26,8 @@ export function JewelryList() {
   const [status, setStatus] = useState('');
   const [stale, setStale] = useState(false);
   const [noCost, setNoCost] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const dialog = useDialog();
 
   const load = () => {
     const p = new URLSearchParams({ pageSize: '100' });
@@ -49,20 +42,34 @@ export function JewelryList() {
   useEffect(load, [search, category, status, stale, noCost]);
 
   const retire = async (id: number) => {
-    const choice = prompt('Take this piece off the shelf.\n\nType one of:\n  damaged\n  lost\n  voided  (entered by mistake)');
-    if (choice === null) return;
-    const s = choice.trim().toLowerCase();
-    if (!['damaged', 'lost', 'voided'].includes(s)) { alert('Type damaged, lost or voided.'); return; }
-    const reason = prompt('Why? Kept in the stock history.');
-    if (reason === null || reason.trim() === '') return;
-    try { await apiPost(`/jewelries/${id}/retire`, { status: s, reason: reason.trim() }); load(); }
-    catch (err) { alert(err instanceof ApiError ? err.message : 'Could not retire this piece.'); }
+    const answer = await dialog.ask({
+      title: 'Take this piece off the shelf',
+      description: 'The piece is never deleted. It stays for the history, and one row is written to the stock ledger.',
+      confirmLabel: 'Retire piece',
+      tone: 'danger',
+      fields: [
+        {
+          name: 'status', label: 'What happened to it', type: 'select',
+          options: [
+            { value: 'damaged', label: 'Damaged — it broke' },
+            { value: 'lost', label: 'Lost — it is missing' },
+            { value: 'voided', label: 'Entered by mistake — it never existed' },
+          ],
+        },
+        { name: 'reason', label: 'Reason', type: 'textarea', help: 'Kept in the stock history.' },
+      ],
+    });
+    if (!answer) return;
+    try { await apiPost(`/jewelries/${id}/retire`, { status: answer.status, reason: answer.reason }); load(); }
+    catch (err) { setError(err instanceof ApiError ? err.message : 'Could not retire this piece.'); }
   };
 
   if (!cat) return <div className="text-neutral-500">Loading…</div>;
 
   return (
     <div className="max-w-[1400px]">
+      <Dialog request={dialog.request} onSettle={dialog.settle} />
+      {error && <ErrorNote>{error}</ErrorNote>}
       <header className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Jewellery</h1>
@@ -135,7 +142,7 @@ export function JewelryList() {
                   {p.daysInStock !== null ? `${p.daysInStock} d` : p.soldAt ? `Sold ${new Date(p.soldAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : '—'}
                 </td>
                 <td className="px-5 py-3 text-right">
-                  <span className={`px-2 py-1 rounded-md border text-xs capitalize ${STATUS[p.status] ?? 'border-neutral-200'}`}>{p.status}</span>
+                  <StatusPill status={p.status} />
                 </td>
                 <td className="px-5 py-3 text-right">
                   {['available', 'reserved'].includes(p.status) && (
@@ -157,7 +164,7 @@ export function JewelryList() {
                 <div className="font-medium text-neutral-900 truncate">{p.name}</div>
                 <div className="font-mono tabular-nums text-xs text-neutral-400">{p.sku} · {grams(p.silverWeightGrams)} g</div>
               </div>
-              <span className={`px-2 py-1 rounded-md border text-xs capitalize shrink-0 ${STATUS[p.status] ?? 'border-neutral-200'}`}>{p.status}</span>
+              <StatusPill status={p.status} className="shrink-0" />
             </div>
             <div className="flex items-end justify-between gap-3 mt-2">
               <span className={`text-xs font-mono tabular-nums ${p.isStale ? 'text-red-600' : 'text-neutral-400'}`}>
@@ -170,10 +177,7 @@ export function JewelryList() {
       </div>
 
       {cat.data.length === 0 && (
-        <div className="bg-white border border-neutral-200 rounded-xl px-6 py-14 text-center">
-          <div className="text-neutral-900 font-medium">Nothing matches</div>
-          <div className="text-sm text-neutral-500 mt-1">Try clearing the filters.</div>
-        </div>
+        <EmptyState title="Nothing matches" detail="Try clearing the filters." />
       )}
 
       <p className="text-xs text-neutral-400 mt-5">

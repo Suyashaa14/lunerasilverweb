@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ApiError, apiGet, apiPost } from '../../api/client';
+import { Dialog, useDialog } from '../../components/admin/Dialog';
+import { ErrorNote } from '../../components/admin/ui';
 import { DateRangeFilter } from './DateRangeFilter';
 import { Pagination } from './Pagination';
 
@@ -26,6 +28,8 @@ export function ExpensesList() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [total, setTotal] = useState(0);
   const [summary, setSummary] = useState<ExpensesSummary | null>(null);
+  const [voidError, setVoidError] = useState<string | null>(null);
+  const dialog = useDialog();
   const [loading, setLoading] = useState(true);
 
   const load = () => {
@@ -57,22 +61,26 @@ export function ExpensesList() {
   // Expenses are never deleted. Voiding keeps the row and its number, takes it
   // out of every total, and records who cancelled it and why.
   const voidExpense = async (id: number) => {
-    const reason = prompt('Why is this expense being voided?\n\nThe record stays but stops counting.');
-    if (reason === null) return;
-    if (reason.trim() === '') {
-      alert('A reason is required.');
-      return;
-    }
+    const answer = await dialog.ask({
+      title: 'Void this expense',
+      description: 'The record stays and keeps its number, but stops counting in any total.',
+      confirmLabel: 'Void expense',
+      tone: 'danger',
+      fields: [{ name: 'reason', label: 'Reason', type: 'textarea', placeholder: 'Entered twice' }],
+    });
+    if (!answer) return;
     try {
-      await apiPost(`/expenses/${id}/void`, { reason: reason.trim() });
+      await apiPost(`/expenses/${id}/void`, { reason: answer.reason });
       load();
     } catch (err) {
-      alert(err instanceof ApiError ? err.message : 'Could not void this expense.');
+      setVoidError(err instanceof ApiError ? err.message : 'Could not void this expense.');
     }
   };
 
   return (
     <div>
+      <Dialog request={dialog.request} onSettle={dialog.settle} />
+      {voidError && <ErrorNote>{voidError}</ErrorNote>}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Expenses</h1>
         <Link to="/admin/expenses/new" className="admin-primary-action px-4 py-2 rounded-md bg-neutral-900 text-white text-sm font-medium hover:bg-black">

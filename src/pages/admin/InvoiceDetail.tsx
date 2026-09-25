@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ApiError, apiGet, apiPost } from '../../api/client';
+import { Dialog, useDialog } from '../../components/admin/Dialog';
+import { num } from '../../components/admin/format';
 
 interface Item {
   id: number; name: string; sku: string | null;
@@ -17,8 +19,6 @@ interface Invoice {
 interface Balance { total: number; paid: number; pending: number; outstanding: number; isSettled: boolean }
 interface Payment { id: number; amount: number; method: string; status: string; receivedDateBs: string; note: string | null }
 
-const num = (v: number) => Math.round(v).toLocaleString();
-
 export function InvoiceDetail() {
   const { id } = useParams();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -26,6 +26,7 @@ export function InvoiceDetail() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const dialog = useDialog();
 
   const load = useCallback(async () => {
     const [inv, bal, pays] = await Promise.all([
@@ -48,30 +49,63 @@ export function InvoiceDetail() {
     finally { setBusy(false); }
   };
 
-  const takePayment = () => {
+  const takePayment = async () => {
     if (!balance) return;
-    const raw = prompt(`How much is being paid?\n\n${num(balance.outstanding)} is outstanding.`, String(balance.outstanding));
-    if (raw === null) return;
-    const amount = Number(raw);
-    if (!Number.isFinite(amount) || amount <= 0) { alert('Enter a number greater than zero.'); return; }
-    act(() => apiPost('/payments', { invoiceId: Number(id), amount, method: invoice?.paymentMethod ?? 'cash' }));
+    const answer = await dialog.ask({
+      title: 'Take payment',
+      description: `${num(balance.outstanding)} is outstanding on this invoice.`,
+      confirmLabel: 'Record payment',
+      fields: [
+        { name: 'amount', label: 'Amount received', type: 'number', defaultValue: String(balance.outstanding) },
+        {
+          name: 'method', label: 'Method', type: 'select', defaultValue: invoice?.paymentMethod ?? 'cash',
+          options: [
+            { value: 'cash', label: 'Cash' }, { value: 'esewa_qr', label: 'eSewa' },
+            { value: 'bank_transfer', label: 'Bank transfer' }, { value: 'card', label: 'Card' },
+          ],
+          help: 'Cash counts straight away. Anything else waits until you confirm it against a statement.',
+        },
+      ],
+    });
+    if (!answer) return;
+
+    const amount = Number(answer.amount);
+    if (!Number.isFinite(amount) || amount <= 0) { setError('Enter an amount greater than zero.'); return; }
+    act(() => apiPost('/payments', { invoiceId: Number(id), amount, method: answer.method }));
   };
 
-  const voidInvoice = () => {
-    const reason = prompt('Why is this invoice being voided?\n\nThe invoice stays and keeps its number, but stops counting.');
-    if (reason === null) return;
-    if (reason.trim() === '') { alert('A reason is required.'); return; }
-    act(() => apiPost(`/invoices/${id}/void`, { reason: reason.trim() }));
+  const voidInvoice = async () => {
+    const answer = await dialog.ask({
+      title: 'Void this invoice',
+      description: 'The invoice stays and keeps its number, but stops counting as revenue and the pieces go back on the shelf. Use a credit note instead if the customer already has this invoice.',
+      confirmLabel: 'Void invoice',
+      tone: 'danger',
+      fields: [{ name: 'reason', label: 'Reason', type: 'textarea', placeholder: 'Issued to the wrong customer' }],
+    });
+    if (!answer) return;
+    act(() => apiPost(`/invoices/${id}/void`, { reason: answer.reason }));
   };
 
-  const creditNote = () => {
-    const reason = prompt('Why is this being credited?\n\nThe original invoice stays; a credit note records the reversal.');
-    if (reason === null) return;
-    if (reason.trim() === '') { alert('A reason is required.'); return; }
-    const refund = balance && balance.paid > 0 && confirm(`Hand back ${num(balance.paid)} in cash as well?`);
+  const creditNote = async () => {
+    const canRefund = Boolean(balance && balance.paid > 0);
+    const answer = await dialog.ask({
+      title: 'Issue a credit note',
+      description: 'The original invoice is left untouched. A separate numbered credit note records the reversal.',
+      confirmLabel: 'Issue credit note',
+      fields: [
+        { name: 'reason', label: 'Reason', type: 'textarea', placeholder: 'Customer returned it' },
+        ...(canRefund ? [{
+          name: 'refund', label: `Hand back ${num(balance!.paid)} in cash?`, type: 'select' as const,
+          defaultValue: 'yes', required: false,
+          options: [{ value: 'yes', label: 'Yes, refund it' }, { value: 'no', label: 'No, keep it on account' }],
+        }] : []),
+      ],
+    });
+    if (!answer) return;
+
     act(() => apiPost(`/invoices/${id}/credit-note`, {
-      reason: reason.trim(),
-      ...(refund ? { refund: { amount: balance!.paid, method: 'cash' } } : {}),
+      reason: answer.reason,
+      ...(canRefund && answer.refund === 'yes' ? { refund: { amount: balance!.paid, method: 'cash' } } : {}),
     }));
   };
 
@@ -82,6 +116,7 @@ export function InvoiceDetail() {
 
   return (
     <div className="max-w-[1000px]">
+      <Dialog request={dialog.request} onSettle={dialog.settle} />
       <header className="flex flex-wrap items-start justify-between gap-4 mb-6 print:hidden">
         <div>
           <div className="text-sm text-neutral-500">
