@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet } from '../../api/client';
-import { BUTTON, EmptyState, Loading, PageHeader, StatusPill } from '../../components/admin/ui';
+import { BUTTON, EmptyState, ErrorNote, Loading, PageHeader, StatusPill } from '../../components/admin/ui';
 import { num } from '../../components/admin/format';
 
 interface Row {
@@ -12,9 +12,13 @@ interface Row {
 export function PurchaseList() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiGet('/purchases').then(setRows).catch(() => setRows([])).finally(() => setLoading(false));
+    apiGet('/purchases')
+      .then(setRows)
+      .catch(() => setError('Could not load purchase bills.'))
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <Loading />;
@@ -28,6 +32,8 @@ export function PurchaseList() {
         subtitle={rows.length === 0 ? 'Supplier bills. This is where cost price comes from.' : `${rows.length} bills · ${num(total)} spent`}
         actions={<Link to="/admin/purchases/new" className={BUTTON.primary}>New bill</Link>}
       />
+
+      {error && <ErrorNote>{error}</ErrorNote>}
 
       {rows.length === 0 ? (
         <EmptyState

@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ApiError, apiGet, apiPost } from '../../api/client';
 import { Dialog, useDialog } from '../../components/admin/Dialog';
 import { num } from '../../components/admin/format';
+import { Loading, TableWrap } from '../../components/admin/ui';
 
 interface Item {
   id: number; name: string; sku: string | null;
@@ -112,7 +113,7 @@ export function InvoiceDetail() {
   const print = () => act(async () => { await apiPost(`/invoices/${id}/print`); window.print(); });
 
   if (error && !invoice) return <div className="text-red-700">{error}</div>;
-  if (!invoice) return <div className="text-neutral-500">Loading…</div>;
+  if (!invoice) return <Loading />;
 
   return (
     <div className="max-w-[1000px]">
@@ -170,7 +171,8 @@ export function InvoiceDetail() {
           <span className="text-neutral-500 capitalize">Paid by <strong className="text-neutral-900 font-medium">{invoice.paymentMethod.replace('_', ' ')}</strong></span>
         </div>
 
-        <table className="w-full text-sm">
+        <TableWrap minWidth={480}>
+<table className="w-full text-sm">
           <thead>
             <tr className="text-xs uppercase tracking-wide text-neutral-400 border-b border-neutral-100">
               <th className="text-left font-medium px-5 py-3">Item</th>
@@ -195,6 +197,7 @@ export function InvoiceDetail() {
             ))}
           </tbody>
         </table>
+</TableWrap>
 
         <div className="px-5 py-4 border-t border-neutral-100 flex justify-end">
           <div className="w-full sm:w-72 space-y-1.5 text-sm">

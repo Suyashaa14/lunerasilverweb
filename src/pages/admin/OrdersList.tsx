@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ChevronDown, MapPin, Phone } from 'lucide-react';
 import { apiGet, apiPatch, ApiError } from '../../api/client';
 import { Pagination } from './Pagination';
+import { Loading } from '../../components/admin/ui';
 
 interface OrderItem {
   id: number;
@@ -125,7 +126,7 @@ export function OrdersList() {
     }
   };
 
-  if (loading) return <div className="text-neutral-500">Loading…</div>;
+  if (loading) return <Loading />;
 
   return (
     <div>

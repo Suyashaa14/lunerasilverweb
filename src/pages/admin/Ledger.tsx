@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError, apiGet, apiPost } from '../../api/client';
 import { Dialog, useDialog } from '../../components/admin/Dialog';
-import { BUTTON, Card, CardHead, ErrorNote, Loading, PageHeader } from '../../components/admin/ui';
+import { BUTTON, Card, CardHead, ErrorNote, Loading, PageHeader, TableWrap } from '../../components/admin/ui';
 import { money } from '../../components/admin/format';
 
 interface Account { id: number; code: string; name: string; type: string }
@@ -142,7 +142,8 @@ export function Ledger() {
               <div className="font-mono tabular-nums text-sm text-neutral-500">{open.entryNo} · {open.entryDateBs}</div>
               <h2 className="text-[17px] font-semibold mt-0.5">{open.narration}</h2>
             </div>
-            <table className="w-full text-sm">
+            <TableWrap minWidth={420}>
+<table className="w-full text-sm">
               <thead>
                 <tr className="text-xs uppercase tracking-wide text-neutral-400 border-b border-neutral-100">
                   <th className="text-left font-medium px-5 py-2.5">Account</th>
@@ -160,6 +161,7 @@ export function Ledger() {
                 ))}
               </tbody>
             </table>
+</TableWrap>
             <div className="px-5 py-4 border-t border-neutral-100 flex justify-between items-center">
               <span className="text-xs text-neutral-400">Entries cannot be edited or deleted. Correct one by posting its reverse.</span>
               <button onClick={() => setOpen(null)} className={BUTTON.secondary}>Close</button>

@@ -343,14 +343,26 @@ customer is charged.
 
 ---
 
-## Phase F5 — Finishing
+## Phase F5 — Finishing · `COMPLETE` (F5.3 still your call)
 
-### Step F5.1 — Mobile pass · `TODO`
-Every new screen at phone width. The shop counter is used standing up.
+### Step F5.1 — Mobile pass · `DONE`
+Audited every admin screen for tables that a phone would clip.
 
-### Step F5.2 — States · `TODO`
-Consistent loading, empty and error states. Several screens currently show a
-bare "Loading…" and nothing on failure.
+The list screens already swap to cards below `md`, so they were fine. The five
+that show a table on a phone — Reports, Purchase detail, Jewellery movement,
+the Ledger entry, Invoice lines — now use a shared `TableWrap` that scrolls
+sideways. **A column of figures that silently loses its right-hand edge is worse
+than one you have to swipe.**
+
+### Step F5.2 — States · `DONE`
+Every screen now waits the same way (`<Loading />`) — six were using their own
+markup.
+
+More importantly, **four screens showed nothing at all when a load failed**:
+Dashboard, Invoices, Purchases and Stock check. An empty list looked exactly
+like "you have no invoices", and the dashboard sat on *Loading…* for ever.
+They now say what went wrong, and the empty state distinguishes *nothing yet*
+from *could not load*.
 
 ### Step F5.3 — Storefront · `BLOCKED (F3)`
 The shop route is commented out in `App.tsx`, so customers cannot browse.
@@ -387,4 +399,9 @@ before worrying about how it looks.
 | 2026-09-26 | F4.2 | Users screen + `POST /api/users`. **DONE**. |
 | 2026-09-26 | fix | Staff could not see the jewellery catalogue — found by testing a real staff login. |
 | 2026-09-26 | fix | Documents dated a second into the future: MySQL **rounds** fractional seconds. Milliseconds now dropped. |
-| 2026-09-26 | — | **Phase F4 complete. No greyed-out tabs left.** Next: F5 (mobile pass, states). |
+| 2026-09-26 | — | **Phase F4 complete. No greyed-out tabs left.** |
+| 2026-09-26 | F5.1 | `TableWrap` on the five screens showing tables on a phone. **DONE**. |
+| 2026-09-26 | F5.2 | Consistent loading; four screens that failed silently now say so. **DONE**. |
+| 2026-09-26 | bug | **Retired pieces were listed publicly for sale.** Public listing now shows only available/reserved. 88 tests. |
+| 2026-09-26 | F5.3 | Storefront still switched off — your call. Two lines to re-enable. |
+| 2026-09-26 | — | **All frontend phases complete** bar the two decisions (invoice print format, shop on/off). |

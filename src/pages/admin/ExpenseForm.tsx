@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Documents } from '../../components/admin/Documents';
 import { apiGet, apiPost, apiPut, ApiError } from '../../api/client';
+import { Loading } from '../../components/admin/ui';
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
@@ -55,7 +56,7 @@ export function ExpenseForm() {
     }
   };
 
-  if (loading) return <div className="text-neutral-500">Loading…</div>;
+  if (loading) return <Loading />;
 
   return (
     <div className="max-w-lg">

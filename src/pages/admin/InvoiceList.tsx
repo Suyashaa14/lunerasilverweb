@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet } from '../../api/client';
+import { EmptyState, ErrorNote, Loading } from '../../components/admin/ui';
 
 interface Row {
   id: number;
@@ -29,6 +30,7 @@ export function InvoiceList() {
   const [search, setSearch] = useState('');
   const [includeVoid, setIncludeVoid] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -38,7 +40,8 @@ export function InvoiceList() {
 
     apiGet(`/invoices?${params}`)
       .then((res: { data: Row[]; total: number }) => { setRows(res.data); setTotal(res.total); })
-      .catch(() => setRows([]))
+      .then(() => setError(null))
+      .catch(() => setError('Could not load invoices. Check the connection and try again.'))
       .finally(() => setLoading(false));
   }, [search, includeVoid]);
 
@@ -71,13 +74,15 @@ export function InvoiceList() {
         </label>
       </div>
 
+      {error && <ErrorNote>{error}</ErrorNote>}
+
       {loading ? (
-        <div className="text-neutral-500">Loading…</div>
+        <Loading />
       ) : rows.length === 0 ? (
-        <div className="bg-white border border-neutral-200 rounded-xl px-6 py-14 text-center">
-          <div className="text-neutral-900 font-medium">No invoices yet</div>
-          <div className="text-sm text-neutral-500 mt-1">Record a counter sale and it will appear here.</div>
-        </div>
+        <EmptyState
+          title={error ? 'Nothing to show' : 'No invoices yet'}
+          detail={error ? 'The list could not be loaded.' : 'Record a counter sale and it will appear here.'}
+        />
       ) : (
         <>
           {/* Desktop */}

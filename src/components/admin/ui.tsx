@@ -101,6 +101,19 @@ export function EmptyState({ title, detail, action }: { title: string; detail?: 
   );
 }
 
+/**
+ * Wraps a table so it scrolls sideways on a narrow screen instead of being
+ * clipped by the card's rounded corners. A column of figures that silently
+ * loses its right-hand edge is worse than one you have to swipe.
+ */
+export function TableWrap({ children, minWidth = 560 }: { children: ReactNode; minWidth?: number }) {
+  return (
+    <div className="overflow-x-auto">
+      <div style={{ minWidth }}>{children}</div>
+    </div>
+  );
+}
+
 export function Loading({ what = 'Loading…' }: { what?: string }) {
   return <div className="text-neutral-500">{what}</div>;
 }

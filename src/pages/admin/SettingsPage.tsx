@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { apiGet, apiPost, apiPut, apiUpload, ApiError } from '../../api/client';
+import { Loading } from '../../components/admin/ui';
 
 export function SettingsPage() {
   const [rate, setRate] = useState('');
@@ -74,7 +75,7 @@ export function SettingsPage() {
     }
   };
 
-  if (loading) return <div className="text-neutral-500">Loading…</div>;
+  if (loading) return <Loading />;
 
   return (
     <div className="max-w-xl space-y-8">

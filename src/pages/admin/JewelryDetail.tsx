@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ApiError, apiGet, apiPost } from '../../api/client';
 import { Dialog, useDialog } from '../../components/admin/Dialog';
-import { StatusPill } from '../../components/admin/ui';
+import { Loading, StatusPill, TableWrap } from '../../components/admin/ui';
 import { money as num } from '../../components/admin/format';
 
 interface Movement {
@@ -63,7 +63,7 @@ export function JewelryDetail() {
   };
 
   if (error) return <div className="text-red-700">{error}</div>;
-  if (!p) return <div className="text-neutral-500">Loading…</div>;
+  if (!p) return <Loading />;
 
   const onShelf = ['available', 'reserved'].includes(p.status);
   const silverValue = p.silverWeightGrams * p.silverRate.perGram;
@@ -168,7 +168,8 @@ export function JewelryDetail() {
                 No ledger rows. This piece pre-dates the stock ledger.
               </div>
             ) : (
-              <table className="w-full text-sm">
+              <TableWrap minWidth={560}>
+<table className="w-full text-sm">
                 <thead>
                   <tr className="text-xs uppercase tracking-wide text-neutral-400 border-b border-neutral-100">
                     <th className="text-left font-medium px-5 py-3">Date</th>
@@ -190,6 +191,7 @@ export function JewelryDetail() {
                   ))}
                 </tbody>
               </table>
+</TableWrap>
             )}
             <p className="px-5 py-3 border-t border-neutral-100 text-xs text-neutral-500">
               Editing weight or making charge only changes future sales. Issued invoices keep their own

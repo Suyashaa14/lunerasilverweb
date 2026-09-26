@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { apiGet } from '../../api/client';
-import { Card, CardHead, ErrorNote, Loading } from '../../components/admin/ui';
+import { Card, CardHead, ErrorNote, Loading, TableWrap } from '../../components/admin/ui';
 import { Documents } from '../../components/admin/Documents';
 import { money } from '../../components/admin/format';
 
@@ -48,7 +48,8 @@ export function PurchaseDetail() {
             {booked === 0 ? 'Nothing booked into stock' : `${booked} piece${booked === 1 ? '' : 's'} booked into stock`}
           </span>}
         />
-        <table className="w-full text-sm">
+        <TableWrap minWidth={560}>
+<table className="w-full text-sm">
           <thead>
             <tr className="text-xs uppercase tracking-wide text-neutral-400 border-b border-neutral-100">
               <th className="text-left font-medium px-5 py-3">Description</th>
@@ -78,6 +79,7 @@ export function PurchaseDetail() {
             ))}
           </tbody>
         </table>
+</TableWrap>
 
         <div className="px-5 py-4 border-t border-neutral-100 flex justify-end">
           <div className="w-full sm:w-64 space-y-1.5 text-sm">

@@ -4,6 +4,7 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, ReferenceLine, LabelList,
 } from 'recharts';
 import { apiGet } from '../../api/client';
+import { ErrorNote, Loading } from '../../components/admin/ui';
 import { AlertsBell } from './AlertsBell';
 
 type PeriodKey = 'month' | 'quarter' | 'year';
@@ -98,16 +99,20 @@ export function DashboardHome() {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [showAllAlerts, setShowAllAlerts] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiGet(`/dashboard/overview?period=${period}`).then(setOverview);
+    apiGet(`/dashboard/overview?period=${period}`)
+      .then((d) => { setOverview(d); setError(null); })
+      .catch(() => setError('Could not load the dashboard. Check that the API is running.'));
   }, [period]);
 
   useEffect(() => {
     apiGet('/dashboard/alerts').then(setAlerts).catch(() => setAlerts([]));
   }, []);
 
-  if (!overview) return <div className="text-neutral-500">Loading…</div>;
+  if (error && !overview) return <ErrorNote>{error}</ErrorNote>;
+  if (!overview) return <Loading />;
 
   const { counter, store, expensesByCategory, netProfitTrend } = overview;
   const costShare = counter.revenue > 0 ? Math.round((counter.cost / counter.revenue) * 100) : 0;

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet } from '../../api/client';
-import { Card, CardHead, Loading, PageHeader, StatusPill } from '../../components/admin/ui';
+import { Card, CardHead, ErrorNote, Loading, PageHeader, StatusPill } from '../../components/admin/ui';
 
 interface Row {
   jewelryId: number; sku: string; status: string;
@@ -12,11 +12,12 @@ export function StockCheck() {
   const [rows, setRows] = useState<Row[]>([]);
   const [problems, setProblems] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     apiGet('/inventory/reconcile')
       .then((res: { data: Row[]; disagreements: Row[] }) => { setRows(res.data); setProblems(res.disagreements); })
-      .catch(() => setRows([]))
+      .catch(() => setError('Could not run the stock check.'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -30,6 +31,8 @@ export function StockCheck() {
         title="Stock check"
         subtitle="Rebuilds what should be on the shelf from the stock ledger, and compares it with what each piece says about itself."
       />
+
+      {error && <ErrorNote>{error}</ErrorNote>}
 
       <Card className={`mb-5 px-5 py-5 ${problems.length > 0 ? 'bg-red-50/50 border-red-200' : ''}`}>
         <div className={`font-mono tabular-nums text-4xl font-semibold ${problems.length > 0 ? 'text-red-700' : 'text-emerald-700'}`}>

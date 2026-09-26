@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError, apiDownload, apiGet } from '../../api/client';
-import { BUTTON, Card, CardHead, ErrorNote, Loading, PageHeader, StatusPill } from '../../components/admin/ui';
+import { BUTTON, Card, CardHead, ErrorNote, Loading, PageHeader, StatusPill, TableWrap } from '../../components/admin/ui';
 import { money, num } from '../../components/admin/format';
 
 type ReportKey =
@@ -164,7 +164,8 @@ export function Reports() {
                   ? <span className="text-xs text-emerald-700">debits equal credits</span>
                   : <span className="text-xs text-red-700">out by {money(data.totalDebit - data.totalCredit)}</span>}
               />
-              <table className="w-full text-sm">
+              <TableWrap minWidth={640}>
+<table className="w-full text-sm">
                 <thead>
                   <tr className="text-xs uppercase tracking-wide text-neutral-400 border-b border-neutral-100">
                     <th className="text-left font-medium px-5 py-3">Account</th>
@@ -187,6 +188,7 @@ export function Reports() {
                   </tr>
                 </tbody>
               </table>
+</TableWrap>
             </Card>
           )}
 
@@ -269,7 +271,8 @@ export function Reports() {
               {data.rows.length === 0 ? (
                 <div className="px-5 py-10 text-sm text-neutral-400 text-center">Nothing in this period.</div>
               ) : (
-                <table className="w-full text-sm">
+                <TableWrap minWidth={640}>
+<table className="w-full text-sm">
                   <thead>
                     <tr className="text-xs uppercase tracking-wide text-neutral-400 border-b border-neutral-100">
                       <th className="text-left font-medium px-5 py-3">{report === 'sales-register' ? 'Invoice' : 'Bill'}</th>
@@ -299,6 +302,7 @@ export function Reports() {
                     </tr>
                   </tbody>
                 </table>
+</TableWrap>
               )}
             </Card>
           )}

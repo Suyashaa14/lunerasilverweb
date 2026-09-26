@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ApiError, apiGet, apiPost } from '../../api/client';
 import { Dialog, useDialog } from '../../components/admin/Dialog';
-import { ErrorNote, EmptyState, StatusPill } from '../../components/admin/ui';
+import { EmptyState, ErrorNote, Loading, StatusPill } from '../../components/admin/ui';
 import { num, grams } from '../../components/admin/format';
 
 interface Piece {
@@ -64,7 +64,7 @@ export function JewelryList() {
     catch (err) { setError(err instanceof ApiError ? err.message : 'Could not retire this piece.'); }
   };
 
-  if (!cat) return <div className="text-neutral-500">Loading…</div>;
+  if (!cat) return <Loading />;
 
   return (
     <div className="max-w-[1400px]">
