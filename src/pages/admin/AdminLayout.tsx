@@ -41,8 +41,8 @@ const SECTIONS: SectionDef[] = [
     icon: ShoppingBag,
     match: ['/admin/invoices', '/admin/orders'],
     children: [
-      { to: '/admin/invoices/new', label: 'New sale' },
-      { to: '/admin/invoices', label: 'Invoices', not: ['/admin/invoices/new'] },
+      // New sale is a button on the sales list now, not a place you navigate to.
+      { to: '/admin/invoices', label: 'All sales' },
       { to: '/admin/orders', label: 'Orders' },
     ],
   },
@@ -100,7 +100,7 @@ const SETTINGS: SectionDef = {
 /** The four things done standing at the counter. Everything else is behind More. */
 const PHONE_TABS: Array<ChildDef & { label: string; icon: ComponentType<{ className?: string }>; section?: string; badge?: 'payments' }> = [
   { to: '/admin/invoices/new', label: 'Sell', icon: ShoppingBag },
-  { to: '/admin/invoices', label: 'Invoices', icon: FileText, not: ['/admin/invoices/new'] },
+  { to: '/admin/invoices', label: 'Sales', icon: FileText, not: ['/admin/invoices/new'] },
   { to: '/admin/jewelries', label: 'Stock', icon: Boxes, section: 'stock' },
   { to: '/admin/payments', label: 'Money', icon: Wallet, section: 'money', badge: 'payments' },
 ];
