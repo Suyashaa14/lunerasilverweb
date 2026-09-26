@@ -5,7 +5,14 @@ import { BUTTON, Card, CardHead, ErrorNote, Loading } from '../../components/adm
 import { money } from '../../components/admin/format';
 
 const CATEGORIES = ['rings', 'necklaces', 'earrings', 'bangles', 'pendants', 'other'];
-const PURITIES = ['925', '999', '800'];
+/** The gradings the shop actually deals in. Anything else is typed in. */
+const PURITIES = [
+  { value: '999', label: '999 — fine silver' },
+  { value: '99%', label: '99%' },
+  { value: '98%', label: '98%' },
+  { value: '925', label: '925 — sterling' },
+];
+const OTHER = '__other__';
 const n = (v: string) => (v.trim() === '' ? 0 : Number(v));
 
 export function JewelryForm() {
@@ -19,6 +26,9 @@ export function JewelryForm() {
   const [status, setStatus] = useState('available');
   const [material, setMaterial] = useState('Silver');
   const [purity, setPurity] = useState('925');
+  // Set when the stored purity is not one of the listed gradings, so the free
+  // box stays open on an existing piece instead of silently resetting it.
+  const [purityOther, setPurityOther] = useState(false);
   const [silverWeightGrams, setWeight] = useState('');
   const [makingCharge, setMaking] = useState('');
   const [stoneWeightGrams, setStoneWeight] = useState('');
@@ -40,7 +50,10 @@ export function JewelryForm() {
     apiGet(`/jewelries/${id}/detail`)
       .then((p) => {
         setName(p.name); setSku(p.sku ?? ''); setCategory(p.category); setStatus(p.status);
-        setMaterial(p.material ?? 'Silver'); setPurity(p.purity ?? '925');
+        setMaterial(p.material ?? 'Silver');
+        const loadedPurity = p.purity ?? '925';
+        setPurity(loadedPurity);
+        setPurityOther(loadedPurity !== '' && !PURITIES.some((o) => o.value === loadedPurity));
         setWeight(String(p.silverWeightGrams)); setMaking(String(p.makingCharge));
         setStoneWeight(p.stoneWeightGrams === null ? '' : String(p.stoneWeightGrams));
         setStonePrice(p.stonePrice === null ? '' : String(p.stonePrice));
@@ -158,10 +171,29 @@ export function JewelryForm() {
               </label>
               <label className="block">
                 <span className="text-sm text-neutral-600">Purity</span>
-                <select value={purity} onChange={(e) => setPurity(e.target.value)}
-                  className="mt-1 w-full px-3 py-2.5 rounded-lg border border-neutral-200 text-sm bg-white">
-                  {PURITIES.map((p) => <option key={p} value={p}>{p}</option>)}
+                <select
+                  value={purityOther ? OTHER : purity}
+                  onChange={(e) => {
+                    if (e.target.value === OTHER) { setPurityOther(true); setPurity(''); }
+                    else { setPurityOther(false); setPurity(e.target.value); }
+                  }}
+                  className="mt-1 w-full px-3 py-2.5 rounded-lg border border-neutral-200 text-sm bg-white"
+                >
+                  {PURITIES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  <option value={OTHER}>Other…</option>
                 </select>
+                {purityOther && (
+                  <input
+                    value={purity}
+                    onChange={(e) => setPurity(e.target.value.slice(0, 10))}
+                    placeholder="e.g. 92% or 970"
+                    autoFocus
+                    className="mt-2 w-full px-3 py-2.5 rounded-lg border border-neutral-200 text-sm font-mono"
+                  />
+                )}
+                <span className="text-xs text-neutral-400 mt-1 block">
+                  Written on the piece's record. It does not change the price.
+                </span>
               </label>
               <label className="block">
                 <span className="text-sm text-neutral-600">Silver weight (grams)</span>

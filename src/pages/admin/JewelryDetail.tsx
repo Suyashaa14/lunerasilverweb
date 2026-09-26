@@ -73,6 +73,19 @@ export function JewelryDetail() {
     catch (err) { setError(err instanceof ApiError ? err.message : 'That did not work.'); }
   };
 
+  const restore = async () => {
+    const answer = await dialog.ask({
+      title: `Put ${p?.name ?? 'this piece'} back on the shelf?`,
+      description:
+        'It goes back to available and can be sold again. The stock history keeps both moves, so the count stays right.',
+      confirmLabel: 'Put it back',
+      fields: [{ name: 'reason', label: 'Why', type: 'textarea', help: 'Kept in the stock history.' }],
+    });
+    if (!answer) return;
+    try { await apiPost(`/jewelries/${id}/restore`, { reason: answer.reason }); load(); }
+    catch (err) { setError(err instanceof ApiError ? err.message : 'Could not put this piece back.'); }
+  };
+
   if (error) return <div className="text-red-700">{error}</div>;
   if (!p) return <Loading />;
 
@@ -99,6 +112,11 @@ export function JewelryDetail() {
           {onShelf && (
             <button onClick={remove} className="px-4 py-2.5 rounded-lg border border-red-200 bg-white text-sm font-medium text-red-700">
               Delete
+            </button>
+          )}
+          {['voided', 'damaged', 'lost'].includes(p.status) && (
+            <button onClick={restore} className="px-4 py-2.5 rounded-lg border border-neutral-200 bg-white text-sm font-medium">
+              Put back on the shelf
             </button>
           )}
           <Link to={`/admin/jewelries/${p.id}/edit`} className="admin-primary-action px-5 py-2.5 rounded-lg bg-neutral-900 text-white text-sm font-semibold">Edit</Link>

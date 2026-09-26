@@ -65,6 +65,19 @@ export function JewelryList() {
     catch (err) { setError(err instanceof ApiError ? err.message : 'Could not delete this piece.'); }
   };
 
+  const restore = async (id: number, name: string) => {
+    const answer = await dialog.ask({
+      title: `Put ${name} back on the shelf?`,
+      description:
+        'It goes back to available and can be sold again. The stock history keeps both moves, so the count stays right.',
+      confirmLabel: 'Put it back',
+      fields: [{ name: 'reason', label: 'Why', type: 'textarea', help: 'Kept in the stock history.' }],
+    });
+    if (!answer) return;
+    try { await apiPost(`/jewelries/${id}/restore`, { reason: answer.reason }); load(); }
+    catch (err) { setError(err instanceof ApiError ? err.message : 'Could not put this piece back.'); }
+  };
+
   if (!cat) return <Loading />;
 
   return (
@@ -162,6 +175,11 @@ export function JewelryList() {
                         Delete
                       </button>
                     )}
+                    {['voided', 'damaged', 'lost'].includes(p.status) && (
+                      <button onClick={() => restore(p.id, p.name)} className="text-xs text-neutral-500 hover:text-neutral-900 underline underline-offset-2">
+                        Put back
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -193,6 +211,9 @@ export function JewelryList() {
               <Link to={`/admin/jewelries/${p.id}/edit`} className="text-sm text-neutral-600">Edit</Link>
               {['available', 'reserved'].includes(p.status) && (
                 <button onClick={() => remove(p.id, p.name)} className="text-sm text-red-600">Delete</button>
+              )}
+              {['voided', 'damaged', 'lost'].includes(p.status) && (
+                <button onClick={() => restore(p.id, p.name)} className="text-sm text-neutral-600">Put back</button>
               )}
             </div>
           </div>
