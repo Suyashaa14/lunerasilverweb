@@ -50,9 +50,15 @@ body {
   min-height: 100vh;
 }
 
-img { display: block; max-width: 100%; }
-button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
-a { color: inherit; text-decoration: none; }
+/* These are resets, not overrides. They must sit in Tailwind's `base` layer:
+   unlayered rules beat every layered utility regardless of specificity, so a
+   bare `button { background: none }` here silently erased `bg-neutral-900` on
+   every button in the admin — black buttons rendered white on white. */
+@layer base {
+  img { display: block; max-width: 100%; }
+  button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+  a { color: inherit; text-decoration: none; }
+}
 
 ::selection { background: var(--moon); color: var(--bg-0); }
 

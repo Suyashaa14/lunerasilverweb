@@ -21,6 +21,22 @@ const METHODS = [
 const num = (v: number) => Math.round(v).toLocaleString();
 
 /**
+ * The counter discounts a bill as a whole ("call it 500 off"), but an invoice
+ * stores a discount against each line. The figure is split across the pieces in
+ * proportion to their price, and the last piece absorbs the rounding drift, so
+ * the parts always add back up to exactly what was typed.
+ */
+const splitDiscount = (prices: number[], discount: number): number[] => {
+  const total = prices.reduce((a, b) => a + b, 0);
+  if (discount <= 0 || total <= 0) return prices.map(() => 0);
+
+  const shares = prices.map((p) => Math.round((p / total) * discount * 100) / 100);
+  const drift = Math.round((discount - shares.reduce((a, b) => a + b, 0)) * 100) / 100;
+  shares[shares.length - 1] = Math.round((shares[shares.length - 1] + drift) * 100) / 100;
+  return shares;
+};
+
+/**
  * The sale itself. Rendered full-page at /admin/invoices/new (the phone's Sell
  * tab lands here) and inside a modal on the sales list, so the shop floor can
  * record a sale without leaving the list it was reading.
@@ -39,6 +55,8 @@ export function CounterSaleForm({
   const [picked, setPicked] = useState<Piece[]>([]);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [discount, setDiscount] = useState('');
   const [method, setMethod] = useState('cash');
   const [payNow, setPayNow] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +71,9 @@ export function CounterSaleForm({
   const available = pieces.filter(
     (p) => !picked.some((s) => s.id === p.id) && p.name.toLowerCase().includes(search.toLowerCase()),
   );
-  const total = picked.reduce((sum, p) => sum + p.price, 0);
+  const subtotal = picked.reduce((sum, p) => sum + p.price, 0);
+  const discountValue = Math.max(0, Number(discount) || 0);
+  const total = Math.max(0, subtotal - discountValue);
   const isModal = mode === 'modal';
 
   const submit = async (e: React.FormEvent) => {
@@ -68,13 +88,23 @@ export function CounterSaleForm({
       setError('Enter the buyer’s name.');
       return;
     }
+    if (discountValue > subtotal) {
+      setError('The discount is larger than the sale.');
+      return;
+    }
 
     setSaving(true);
     try {
+      const shares = splitDiscount(picked.map((p) => p.price), discountValue);
+
       const invoice = await apiPost('/invoices', {
-        customer: { name: name.trim(), phone: phone.trim() || null },
+        customer: {
+          name: name.trim(),
+          phone: phone.trim() || null,
+          addressLine: address.trim() || null,
+        },
         paymentMethod: method,
-        items: picked.map((p) => ({ jewelryId: p.id })),
+        items: picked.map((p, i) => ({ jewelryId: p.id, discount: shares[i] })),
       });
 
       // Cash in hand is recorded straight away; anything else is confirmed
@@ -180,6 +210,11 @@ export function CounterSaleForm({
                   <input value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-lg border border-neutral-200 text-sm" />
                   <span className="text-xs text-neutral-400 mt-1 block">A returning buyer is matched on this, so they are not entered twice.</span>
                 </label>
+                <label className="block sm:col-span-2">
+                  <span className="text-sm text-neutral-600">Address</span>
+                  <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Tole, ward, city" className="mt-1 w-full px-3 py-2.5 rounded-lg border border-neutral-200 text-sm" />
+                  <span className="text-xs text-neutral-400 mt-1 block">Printed on the invoice as the buyer’s address.</span>
+                </label>
               </div>
             </div>
           </div>
@@ -189,10 +224,27 @@ export function CounterSaleForm({
               <div className="px-5 py-4 border-b border-neutral-100">
                 <h2 className="text-[15px] font-semibold">Total</h2>
               </div>
-              <div className="px-5 py-5">
-                <div className="font-mono tabular-nums text-4xl font-semibold tracking-tight">{num(total)}</div>
-                <div className="text-sm text-neutral-500 mt-1">
-                  {picked.length} piece{picked.length === 1 ? '' : 's'} · VAT 0
+              <div className="px-5 py-4">
+                <div className="flex items-center justify-between gap-3 text-sm py-1">
+                  <span className="text-neutral-600">Subtotal</span>
+                  <span className="font-mono tabular-nums text-neutral-900">{num(subtotal)}</span>
+                </div>
+                <label className="flex items-center justify-between gap-3 text-sm py-1">
+                  <span className="text-neutral-600">Discount</span>
+                  <input
+                    inputMode="decimal"
+                    value={discount}
+                    onChange={(e) => setDiscount(e.target.value.replace(/[^\d.]/g, ''))}
+                    placeholder="0"
+                    className="w-28 px-3 py-2 rounded-lg border border-neutral-200 text-sm text-right font-mono tabular-nums"
+                  />
+                </label>
+                <div className="mt-3 pt-4 border-t border-neutral-100">
+                  <div className="font-mono tabular-nums text-4xl font-semibold tracking-tight">{num(total)}</div>
+                  <div className="text-sm text-neutral-500 mt-1">
+                    {picked.length} piece{picked.length === 1 ? '' : 's'}
+                    {discountValue > 0 && <> · {num(discountValue)} off</>}
+                  </div>
                 </div>
               </div>
             </div>
