@@ -83,6 +83,11 @@ export function JewelryForm() {
       const body = {
         name: name.trim(),
         category,
+        // These three used to be collected and then dropped: the payload never
+        // carried them, so nothing typed here was ever saved.
+        sku: editing || sku.trim() === '' ? undefined : sku.trim(),
+        material: material.trim() === '' ? undefined : material.trim(),
+        purity: purity.trim() === '' ? undefined : purity.trim(),
         pricingMode: 'makingCharge',
         makingCharge: n(makingCharge),
         silverWeightGrams: n(silverWeightGrams),
@@ -140,7 +145,9 @@ export function JewelryForm() {
                 <input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="auto" disabled={editing}
                   className="mt-1 w-full px-3 py-2.5 rounded-lg border border-neutral-200 text-sm font-mono disabled:bg-neutral-50 disabled:text-neutral-500" />
                 <span className="text-xs text-neutral-400 mt-1 block">
-                  {editing ? 'Cannot change once the piece exists.' : 'Left blank, one is generated.'}
+                  {editing
+                    ? 'Fixed once the piece exists — it may already be on the tag.'
+                    : 'Your own code, if you use one. Leave it blank and one is made for you.'}
                 </span>
               </label>
               <label className="block">
