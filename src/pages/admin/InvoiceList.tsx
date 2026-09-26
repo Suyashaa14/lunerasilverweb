@@ -11,6 +11,7 @@ interface Row {
   issuedDateBs: string;
   issuedAt: string;
   buyerName: string;
+  customerId: number;
   totalAmount: number;
   paid: number;
   outstanding: number;
@@ -134,7 +135,11 @@ export function InvoiceList() {
                       </Link>
                     </td>
                     <td className="px-5 py-3 font-mono tabular-nums text-neutral-600">{r.issuedDateBs}</td>
-                    <td className="px-5 py-3">{r.buyerName}</td>
+                    <td className="px-5 py-3">
+                      <Link to={`/admin/customers/${r.customerId}`} className="hover:underline underline-offset-2">
+                        {r.buyerName}
+                      </Link>
+                    </td>
                     <td className="px-5 py-3 text-right font-mono tabular-nums">{num(r.totalAmount)}</td>
                     <td className={`px-5 py-3 text-right font-mono tabular-nums ${r.outstanding > 0 ? 'text-red-700' : 'text-neutral-400'}`}>
                       {r.outstanding > 0 ? num(r.outstanding) : '—'}

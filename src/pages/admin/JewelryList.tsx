@@ -41,27 +41,28 @@ export function JewelryList() {
 
   useEffect(load, [search, category, status, stale, noCost]);
 
-  const retire = async (id: number) => {
+  const remove = async (id: number, name: string) => {
     const answer = await dialog.ask({
-      title: 'Take this piece off the shelf',
-      description: 'The piece is never deleted. It stays for the history, and one row is written to the stock ledger.',
-      confirmLabel: 'Retire piece',
+      title: `Delete ${name}?`,
+      description:
+        'The record is kept, always. It is taken off the shelf and marked, so the stock history and any past documents still read correctly.',
+      confirmLabel: 'Delete piece',
       tone: 'danger',
       fields: [
         {
-          name: 'status', label: 'What happened to it', type: 'select',
+          name: 'status', label: 'Why', type: 'select',
           options: [
+            { value: 'voided', label: 'Entered by mistake — it never existed' },
             { value: 'damaged', label: 'Damaged — it broke' },
             { value: 'lost', label: 'Lost — it is missing' },
-            { value: 'voided', label: 'Entered by mistake — it never existed' },
           ],
         },
-        { name: 'reason', label: 'Reason', type: 'textarea', help: 'Kept in the stock history.' },
+        { name: 'reason', label: 'Note', type: 'textarea', help: 'Kept in the stock history.' },
       ],
     });
     if (!answer) return;
     try { await apiPost(`/jewelries/${id}/retire`, { status: answer.status, reason: answer.reason }); load(); }
-    catch (err) { setError(err instanceof ApiError ? err.message : 'Could not retire this piece.'); }
+    catch (err) { setError(err instanceof ApiError ? err.message : 'Could not delete this piece.'); }
   };
 
   if (!cat) return <Loading />;
@@ -88,7 +89,7 @@ export function JewelryList() {
       </header>
 
       <div className="flex flex-wrap items-center gap-3 mb-5">
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search SKU or name"
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or code"
           className="flex-1 min-w-[200px] px-3 py-2.5 rounded-lg border border-neutral-200 bg-white text-sm" />
         <select value={category} onChange={(e) => setCategory(e.target.value)} className="px-3 py-2.5 rounded-lg border border-neutral-200 bg-white text-sm">
           <option value="">All categories</option>
@@ -104,7 +105,14 @@ export function JewelryList() {
         <button onClick={() => setNoCost(!noCost)} className={`px-4 py-2.5 rounded-lg border text-sm ${noCost ? 'border-neutral-900 bg-neutral-900 text-white' : 'border-neutral-200 bg-white'}`}>
           No cost price
         </button>
-        <span className="ml-auto text-sm text-neutral-500">Showing {cat.data.length} of {cat.totals.pieces}</span>
+        {(stale || noCost || search || category || status) && (
+          <button
+            onClick={() => { setSearch(''); setCategory(''); setStatus(''); setStale(false); setNoCost(false); }}
+            className="text-sm text-neutral-500 underline underline-offset-2"
+          >
+            Clear
+          </button>
+        )}
       </div>
 
       {/* Desktop */}
@@ -112,11 +120,8 @@ export function JewelryList() {
         <table className="w-full text-sm">
           <thead>
             <tr className="text-xs uppercase tracking-wide text-neutral-400 border-b border-neutral-100">
-              <th className="text-left font-medium px-5 py-3">SKU</th>
-              <th className="text-left font-medium px-5 py-3">Name</th>
-              <th className="text-left font-medium px-5 py-3">Category</th>
+              <th className="text-left font-medium px-5 py-3">Piece</th>
               <th className="text-right font-medium px-5 py-3">Silver g</th>
-              <th className="text-right font-medium px-5 py-3">Making</th>
               <th className="text-right font-medium px-5 py-3">Cost</th>
               <th className="text-right font-medium px-5 py-3">Price today</th>
               <th className="text-right font-medium px-5 py-3">In stock</th>
@@ -128,12 +133,13 @@ export function JewelryList() {
             {cat.data.map((p) => (
               <tr key={p.id}>
                 <td className="px-5 py-3">
-                  <Link to={`/admin/jewelries/${p.id}`} className="font-mono tabular-nums text-neutral-900 hover:underline">{p.sku}</Link>
+                  <Link to={`/admin/jewelries/${p.id}`} className="font-medium text-neutral-900 hover:underline">{p.name}</Link>
+                  <div className="text-xs text-neutral-400 capitalize">
+                    {p.category}
+                    {p.sku && <span className="font-mono tabular-nums"> · {p.sku}</span>}
+                  </div>
                 </td>
-                <td className="px-5 py-3 font-medium text-neutral-900">{p.name}</td>
-                <td className="px-5 py-3 capitalize text-neutral-600">{p.category}</td>
                 <td className="px-5 py-3 text-right font-mono tabular-nums">{grams(p.silverWeightGrams)}</td>
-                <td className="px-5 py-3 text-right font-mono tabular-nums">{num(p.makingCharge)}</td>
                 <td className={`px-5 py-3 text-right font-mono tabular-nums ${p.costPrice === null ? 'text-red-600' : ''}`}>
                   {p.costPrice === null ? 'not set' : num(p.costPrice)}
                 </td>
@@ -144,10 +150,19 @@ export function JewelryList() {
                 <td className="px-5 py-3 text-right">
                   <StatusPill status={p.status} />
                 </td>
-                <td className="px-5 py-3 text-right">
-                  {['available', 'reserved'].includes(p.status) && (
-                    <button onClick={() => retire(p.id)} className="text-xs text-neutral-500 underline underline-offset-2">Retire</button>
-                  )}
+                <td className="px-5 py-3">
+                  <div className="flex items-center justify-end gap-3">
+                    <Link to={`/admin/jewelries/${p.id}/edit`} className="text-xs text-neutral-500 hover:text-neutral-900 underline underline-offset-2">
+                      Edit
+                    </Link>
+                    {/* A sold piece is on a tax document. It is reversed with a
+                        credit note, never deleted, so the button is not offered. */}
+                    {['available', 'reserved'].includes(p.status) && (
+                      <button onClick={() => remove(p.id, p.name)} className="text-xs text-red-600 hover:text-red-700 underline underline-offset-2">
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -158,21 +173,29 @@ export function JewelryList() {
       {/* Mobile */}
       <div className="lg:hidden space-y-3">
         {cat.data.map((p) => (
-          <Link key={p.id} to={`/admin/jewelries/${p.id}`} className="block bg-white border border-neutral-200 rounded-xl px-4 py-3.5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="font-medium text-neutral-900 truncate">{p.name}</div>
-                <div className="font-mono tabular-nums text-xs text-neutral-400">{p.sku} · {grams(p.silverWeightGrams)} g</div>
+          <div key={p.id} className="bg-white border border-neutral-200 rounded-xl px-4 py-3.5">
+            <Link to={`/admin/jewelries/${p.id}`} className="block">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-medium text-neutral-900 truncate">{p.name}</div>
+                  <div className="text-xs text-neutral-400 capitalize">{p.category} · {grams(p.silverWeightGrams)} g</div>
+                </div>
+                <StatusPill status={p.status} className="shrink-0" />
               </div>
-              <StatusPill status={p.status} className="shrink-0" />
+              <div className="flex items-end justify-between gap-3 mt-2">
+                <span className={`text-xs font-mono tabular-nums ${p.isStale ? 'text-red-600' : 'text-neutral-400'}`}>
+                  {p.daysInStock !== null ? `${p.daysInStock} days in stock` : p.costPrice === null ? 'no cost price' : ''}
+                </span>
+                <span className="font-mono tabular-nums text-lg font-semibold">{p.priceToday === null ? '—' : num(p.priceToday)}</span>
+              </div>
+            </Link>
+            <div className="flex items-center gap-4 mt-3 pt-3 border-t border-neutral-100">
+              <Link to={`/admin/jewelries/${p.id}/edit`} className="text-sm text-neutral-600">Edit</Link>
+              {['available', 'reserved'].includes(p.status) && (
+                <button onClick={() => remove(p.id, p.name)} className="text-sm text-red-600">Delete</button>
+              )}
             </div>
-            <div className="flex items-end justify-between gap-3 mt-2">
-              <span className={`text-xs font-mono tabular-nums ${p.isStale ? 'text-red-600' : 'text-neutral-400'}`}>
-                {p.daysInStock !== null ? `${p.daysInStock} days in stock` : p.costPrice === null ? 'no cost price' : ''}
-              </span>
-              <span className="font-mono tabular-nums text-lg font-semibold">{p.priceToday === null ? '—' : num(p.priceToday)}</span>
-            </div>
-          </Link>
+          </div>
         ))}
       </div>
 

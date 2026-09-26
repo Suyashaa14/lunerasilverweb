@@ -49,16 +49,27 @@ export function JewelryDetail() {
   }, [id]);
   useEffect(load, [load]);
 
-  const retire = async (status: string) => {
+  const remove = async () => {
     const answer = await dialog.ask({
-      title: `Mark this piece ${status}`,
-      description: 'The piece stays for the history. One row is written to the stock ledger so the count still adds up.',
-      confirmLabel: 'Confirm',
+      title: `Delete ${p?.name ?? 'this piece'}?`,
+      description:
+        'The record is kept, always. It is taken off the shelf and marked, so the stock history and any past documents still read correctly.',
+      confirmLabel: 'Delete piece',
       tone: 'danger',
-      fields: [{ name: 'reason', label: 'Reason', type: 'textarea', help: 'Kept in the stock history.' }],
+      fields: [
+        {
+          name: 'status', label: 'Why', type: 'select',
+          options: [
+            { value: 'voided', label: 'Entered by mistake — it never existed' },
+            { value: 'damaged', label: 'Damaged — it broke' },
+            { value: 'lost', label: 'Lost — it is missing' },
+          ],
+        },
+        { name: 'reason', label: 'Note', type: 'textarea', help: 'Kept in the stock history.' },
+      ],
     });
     if (!answer) return;
-    try { await apiPost(`/jewelries/${id}/retire`, { status, reason: answer.reason }); load(); }
+    try { await apiPost(`/jewelries/${id}/retire`, { status: answer.status, reason: answer.reason }); load(); }
     catch (err) { setError(err instanceof ApiError ? err.message : 'That did not work.'); }
   };
 
@@ -74,19 +85,23 @@ export function JewelryDetail() {
       <header className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <div className="text-sm text-neutral-500">
-            <Link to="/admin/jewelries" className="hover:underline">Jewellery</Link> / {p.sku}
+            <Link to="/admin/jewelries" className="hover:underline">Jewellery</Link> / {p.name}
           </div>
           <div className="flex flex-wrap items-center gap-3 mt-1">
             <h1 className="text-3xl font-semibold tracking-tight">{p.name}</h1>
             <StatusPill status={p.status} className="text-sm" />
-            <span className="font-mono tabular-nums text-neutral-400">{p.sku}</span>
+            {p.sku && <span className="font-mono tabular-nums text-sm text-neutral-400">{p.sku}</span>}
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          {/* A sold piece is on a tax document; it is reversed with a credit
+              note, never deleted, so the button is not offered for one. */}
           {onShelf && (
-            <button onClick={() => retire('damaged')} className="px-4 py-2.5 rounded-lg border border-neutral-200 bg-white text-sm font-medium">Mark damaged</button>
+            <button onClick={remove} className="px-4 py-2.5 rounded-lg border border-red-200 bg-white text-sm font-medium text-red-700">
+              Delete
+            </button>
           )}
-          <Link to={`/admin/jewelries/${p.id}/edit`} className="px-5 py-2.5 rounded-lg bg-neutral-900 text-white text-sm font-semibold">Edit</Link>
+          <Link to={`/admin/jewelries/${p.id}/edit`} className="admin-primary-action px-5 py-2.5 rounded-lg bg-neutral-900 text-white text-sm font-semibold">Edit</Link>
         </div>
       </header>
 
