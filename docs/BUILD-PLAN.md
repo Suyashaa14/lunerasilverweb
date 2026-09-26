@@ -305,13 +305,41 @@ auditor will ask.
 
 ---
 
-## Phase F4 — Evidence and people
+## Phase F4 — Evidence and people · `COMPLETE`
 
-### Step F4.1 — Receipt uploads · `TODO`
-Attach a photo to an expense or a purchase bill, and show it on the record.
+### Step F4.1 — Receipt uploads · `DONE`
+`components/admin/Documents.tsx` — a reusable panel listing what is attached and
+taking another. Wired into **Purchase detail** (the paper bill) and
+**Expense edit** (the receipt).
 
-### Step F4.2 — Users · `TODO`
-Staff list, invite, role change, deactivate, anonymise. Admin only.
+Upload and link happen in **one call**, so a file cannot end up stored but
+attached to nothing — which is the same as not having it when someone asks.
+
+On a *new* expense the panel does not appear: a receipt has to attach to
+something, so the expense is saved first and the panel appears on edit.
+
+### Step F4.2 — Users · `DONE`
+`UserList.tsx`, admin only. Split into **Shop access** (admin and staff) and
+**Shoppers** (storefront logins) — different problems, different actions.
+
+Each role says in plain words what it reaches. Creating an account needed a new
+`POST /api/users`: public signup only ever makes a customer, and access to the
+books should be given by the owner rather than claimed by filling in a form.
+
+Turning access off explains that the account stays, because the person's name is
+on invoices. Erasing details requires typing `ERASE`.
+
+**Permissions checked against a real staff login**, not assumed:
+
+| Staff reach | Staff refused |
+|---|---|
+| invoices, customers, payments, purchases, suppliers, stock, stock check | users, reports, ledger, year end, creating a piece |
+
+That check caught a real mistake: **staff could not see the jewellery
+catalogue**, so they would have had nothing to sell from. Stock list, piece
+detail and retiring a broken piece are now staff-level; creating and editing a
+piece stays with the owner, since weight and making charge decide what the
+customer is charged.
 
 ---
 
@@ -354,4 +382,9 @@ before worrying about how it looks.
 | 2026-09-26 | F3.4–F3.5 | Ledger with journal drill-down and manual entry; year-end close/reopen. **DONE**. |
 | 2026-09-26 | bug | **Invoices were dated 5h45m in the future** — a local clock reading stored as UTC. Aged receivables silently showed nothing owed. Fixed, with two regression tests. |
 | 2026-09-26 | bug | A customer test used a fixed phone number that collided with real data. It now generates its own. |
-| 2026-09-26 | — | **Phase F3 complete.** 86 backend tests passing. Next: F4 (uploads, users). |
+| 2026-09-26 | — | **Phase F3 complete.** 86 backend tests passing. |
+| 2026-09-26 | F4.1 | Reusable receipt/bill attachment on purchases and expenses. **DONE**. |
+| 2026-09-26 | F4.2 | Users screen + `POST /api/users`. **DONE**. |
+| 2026-09-26 | fix | Staff could not see the jewellery catalogue — found by testing a real staff login. |
+| 2026-09-26 | fix | Documents dated a second into the future: MySQL **rounds** fractional seconds. Milliseconds now dropped. |
+| 2026-09-26 | — | **Phase F4 complete. No greyed-out tabs left.** Next: F5 (mobile pass, states). |

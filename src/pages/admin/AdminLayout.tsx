@@ -65,7 +65,7 @@ const SECTIONS: NavSection[] = [
     adminOnly: true,
     links: [
       { to: '/admin/settings', label: 'Settings' },
-      { to: '/admin/users', label: 'Users', soon: true },
+      { to: '/admin/users', label: 'Users' },
     ],
   },
 ];

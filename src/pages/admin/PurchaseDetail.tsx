@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { apiGet } from '../../api/client';
 import { Card, CardHead, ErrorNote, Loading } from '../../components/admin/ui';
+import { Documents } from '../../components/admin/Documents';
 import { money } from '../../components/admin/format';
 
 interface Item {
@@ -92,12 +93,21 @@ export function PurchaseDetail() {
         </div>
       </Card>
 
-      {p.notes && (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <Card>
-          <CardHead title="Note" />
-          <p className="px-5 py-4 text-sm text-neutral-600">{p.notes}</p>
+          <CardHead title="The paper bill" />
+          <div className="px-5 py-4">
+            <Documents referenceType="purchase" referenceId={p.id} documentType="purchase_bill" label="bill" />
+          </div>
         </Card>
-      )}
+
+        {p.notes && (
+          <Card>
+            <CardHead title="Note" />
+            <p className="px-5 py-4 text-sm text-neutral-600">{p.notes}</p>
+          </Card>
+        )}
+      </div>
 
       <p className="text-xs text-neutral-400 mt-5">
         A supplier bill is evidence and cannot be edited or deleted. Correct it with a further bill or a note from the supplier.

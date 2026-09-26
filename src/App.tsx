@@ -30,6 +30,7 @@ import { StockCheck } from './pages/admin/StockCheck';
 import { Reports } from './pages/admin/Reports';
 import { Ledger } from './pages/admin/Ledger';
 import { YearEnd } from './pages/admin/YearEnd';
+import { UserList } from './pages/admin/UserList';
 import { ExpensesList } from './pages/admin/ExpensesList';
 import { ExpenseForm } from './pages/admin/ExpenseForm';
 import { AnalyticsPage } from './pages/admin/AnalyticsPage';
@@ -92,6 +93,7 @@ function App() {
         <Route path="ledger" element={<Ledger />} />
         <Route path="year-end" element={<YearEnd />} />
         <Route path="analytics" element={<AnalyticsPage />} />
+        <Route path="users" element={<UserList />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
     </Routes>

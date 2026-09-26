@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Documents } from '../../components/admin/Documents';
 import { apiGet, apiPost, apiPut, ApiError } from '../../api/client';
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -124,6 +125,15 @@ export function ExpenseForm() {
           </button>
         </div>
       </form>
+
+      {/* Only once the expense exists: a receipt has to attach to something.
+          On a new expense, save first and the panel appears. */}
+      {isEdit && id && (
+        <div className="mt-5 bg-white border border-neutral-200 rounded-lg p-5">
+          <h2 className="text-[15px] font-semibold mb-3">Receipt</h2>
+          <Documents referenceType="expense" referenceId={Number(id)} documentType="expense_receipt" />
+        </div>
+      )}
     </div>
   );
 }
