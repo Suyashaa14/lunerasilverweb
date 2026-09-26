@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError, apiGet, apiPost } from '../../api/client';
+import { money } from '../../components/admin/format';
 
 interface Piece {
   id: number;
@@ -18,7 +19,6 @@ const METHODS = [
   { value: 'card', label: 'Card' },
 ];
 
-const num = (v: number) => Math.round(v).toLocaleString();
 
 /**
  * The counter discounts a bill as a whole ("call it 500 off"), but an invoice
@@ -59,6 +59,7 @@ export function CounterSaleForm({
   const [discount, setDiscount] = useState('');
   const [method, setMethod] = useState('cash');
   const [payNow, setPayNow] = useState(true);
+  const [skillPromoRate, setSkillPromoRate] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -66,6 +67,13 @@ export function CounterSaleForm({
     apiGet('/jewelries?status=available&pageSize=200')
       .then((res: { data: Piece[] }) => setPieces(res.data))
       .catch(() => setPieces([]));
+
+    // The server prices the invoice; this is only so the counter sees the same
+    // figure it is about to issue. A failed read shows no levy rather than a
+    // guessed one.
+    apiGet('/settings')
+      .then((res: { skillPromoRate?: number }) => setSkillPromoRate(Number(res?.skillPromoRate ?? 0)))
+      .catch(() => setSkillPromoRate(0));
   }, []);
 
   const available = pieces.filter(
@@ -73,7 +81,10 @@ export function CounterSaleForm({
   );
   const subtotal = picked.reduce((sum, p) => sum + p.price, 0);
   const discountValue = Math.max(0, Number(discount) || 0);
-  const total = Math.max(0, subtotal - discountValue);
+  const goods = Math.max(0, subtotal - discountValue);
+  // Charged on the goods after the discount, matching how the invoice does it.
+  const skillPromo = Math.round(goods * skillPromoRate) / 100;
+  const total = Math.round((goods + skillPromo) * 100) / 100;
   const isModal = mode === 'modal';
 
   const submit = async (e: React.FormEvent) => {
@@ -159,7 +170,7 @@ export function CounterSaleForm({
                         <div className="text-xs text-neutral-500 capitalize">{p.category} · {p.silverWeightGrams} g</div>
                       </div>
                       <div className="flex items-center gap-4 shrink-0">
-                        <span className="font-mono tabular-nums text-[15px]">{num(p.price)}</span>
+                        <span className="font-mono tabular-nums text-[15px]">{money(p.price)}</span>
                         <button type="button" onClick={() => setPicked(picked.filter((x) => x.id !== p.id))} className="text-sm text-neutral-500 underline underline-offset-2">
                           Remove
                         </button>
@@ -188,7 +199,7 @@ export function CounterSaleForm({
                         className="w-full flex items-center justify-between gap-4 py-2.5 text-left hover:bg-neutral-50"
                       >
                         <span className="text-sm text-neutral-800 truncate">{p.name}</span>
-                        <span className="font-mono tabular-nums text-sm text-neutral-600">{num(p.price)}</span>
+                        <span className="font-mono tabular-nums text-sm text-neutral-600">{money(p.price)}</span>
                       </button>
                     ))
                   )}
@@ -227,7 +238,7 @@ export function CounterSaleForm({
               <div className="px-5 py-4">
                 <div className="flex items-center justify-between gap-3 text-sm py-1">
                   <span className="text-neutral-600">Subtotal</span>
-                  <span className="font-mono tabular-nums text-neutral-900">{num(subtotal)}</span>
+                  <span className="font-mono tabular-nums text-neutral-900">{money(subtotal)}</span>
                 </div>
                 <label className="flex items-center justify-between gap-3 text-sm py-1">
                   <span className="text-neutral-600">Discount</span>
@@ -239,11 +250,17 @@ export function CounterSaleForm({
                     className="w-28 px-3 py-2 rounded-lg border border-neutral-200 text-sm text-right font-mono tabular-nums"
                   />
                 </label>
+                {skillPromoRate > 0 && (
+                  <div className="flex items-center justify-between gap-3 text-sm py-1">
+                    <span className="text-neutral-600">Skill promotional ({skillPromoRate}%)</span>
+                    <span className="font-mono tabular-nums text-neutral-900">{money(skillPromo)}</span>
+                  </div>
+                )}
                 <div className="mt-3 pt-4 border-t border-neutral-100">
-                  <div className="font-mono tabular-nums text-4xl font-semibold tracking-tight">{num(total)}</div>
+                  <div className="font-mono tabular-nums text-4xl font-semibold tracking-tight">{money(total)}</div>
                   <div className="text-sm text-neutral-500 mt-1">
                     {picked.length} piece{picked.length === 1 ? '' : 's'}
-                    {discountValue > 0 && <> · {num(discountValue)} off</>}
+                    {discountValue > 0 && <> · {money(discountValue)} off</>}
                   </div>
                 </div>
               </div>
@@ -279,7 +296,7 @@ export function CounterSaleForm({
         // Stays on screen while the piece list scrolls above it.
         <div className="sticky bottom-0 mt-5 flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-t border-neutral-200 bg-white/95 backdrop-blur">
           <div className="text-sm text-neutral-500">
-            {picked.length} piece{picked.length === 1 ? '' : 's'} · <span className="font-mono tabular-nums text-neutral-900 font-semibold">{num(total)}</span>
+            {picked.length} piece{picked.length === 1 ? '' : 's'} · <span className="font-mono tabular-nums text-neutral-900 font-semibold">{money(total)}</span>
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={onCancel} className="px-4 py-2.5 rounded-lg border border-neutral-200 bg-white text-sm font-medium">
@@ -296,7 +313,7 @@ export function CounterSaleForm({
             Cancel
           </button>
           <button type="submit" disabled={saving} className="flex-1 px-4 py-3.5 rounded-xl bg-neutral-900 text-white text-[15px] font-semibold disabled:opacity-50">
-            {saving ? 'Saving…' : `Issue invoice · ${num(total)}`}
+            {saving ? 'Saving…' : `Issue invoice · ${money(total)}`}
           </button>
         </div>
       )}

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ApiError, apiGet, apiPost } from '../../api/client';
 import { Dialog, useDialog } from '../../components/admin/Dialog';
-import { num } from '../../components/admin/format';
+import { money } from '../../components/admin/format';
 import { Loading, TableWrap } from '../../components/admin/ui';
 
 interface Item {
@@ -14,7 +14,8 @@ interface Invoice {
   id: number; invoiceNo: string; issuedAt: string; issuedDateBs: string; fiscalYear: string;
   seller: { name: string; address: string; pan: string };
   buyer: { name: string; address: string; pan: string | null };
-  subtotal: number; discount: number; taxableAmount: number; vatAmount: number; vatRate: number; totalAmount: number;
+  subtotal: number; discount: number; taxableAmount: number; vatAmount: number; vatRate: number;
+  skillPromoRate: number; skillPromoAmount: number; totalAmount: number;
   paymentMethod: string; isVoid: boolean; voidReason: string | null; printCount: number; items: Item[];
 }
 interface Balance { total: number; paid: number; pending: number; outstanding: number; isSettled: boolean }
@@ -54,7 +55,7 @@ export function InvoiceDetail() {
     if (!balance) return;
     const answer = await dialog.ask({
       title: 'Take payment',
-      description: `${num(balance.outstanding)} is outstanding on this invoice.`,
+      description: `${money(balance.outstanding)} is outstanding on this invoice.`,
       confirmLabel: 'Record payment',
       fields: [
         { name: 'amount', label: 'Amount received', type: 'number', defaultValue: String(balance.outstanding) },
@@ -96,7 +97,7 @@ export function InvoiceDetail() {
       fields: [
         { name: 'reason', label: 'Reason', type: 'textarea', placeholder: 'Customer returned it' },
         ...(canRefund ? [{
-          name: 'refund', label: `Hand back ${num(balance!.paid)} in cash?`, type: 'select' as const,
+          name: 'refund', label: `Hand back ${money(balance!.paid)} in cash?`, type: 'select' as const,
           defaultValue: 'yes', required: false,
           options: [{ value: 'yes', label: 'Yes, refund it' }, { value: 'no', label: 'No, keep it on account' }],
         }] : []),
@@ -192,7 +193,7 @@ export function InvoiceDetail() {
                   {it.silverWeightGrams ?? '—'} g {it.silverRatePerGram ? <span className="text-neutral-400">× {it.silverRatePerGram}</span> : null}
                 </td>
                 <td className="px-5 py-3 text-right font-mono tabular-nums text-neutral-600 hidden sm:table-cell">{it.makingCharge ?? '—'}</td>
-                <td className="px-5 py-3 text-right font-mono tabular-nums">{num(it.lineTotal)}</td>
+                <td className="px-5 py-3 text-right font-mono tabular-nums">{money(it.lineTotal)}</td>
               </tr>
             ))}
           </tbody>
@@ -201,11 +202,17 @@ export function InvoiceDetail() {
 
         <div className="px-5 py-4 border-t border-neutral-100 flex justify-end">
           <div className="w-full sm:w-72 space-y-1.5 text-sm">
-            <div className="flex justify-between"><span className="text-neutral-500">Subtotal</span><span className="font-mono tabular-nums">{num(invoice.subtotal)}</span></div>
-            {invoice.discount > 0 && <div className="flex justify-between"><span className="text-neutral-500">Discount</span><span className="font-mono tabular-nums">−{num(invoice.discount)}</span></div>}
-            <div className="flex justify-between"><span className="text-neutral-500">VAT ({invoice.vatRate}%)</span><span className="font-mono tabular-nums">{num(invoice.vatAmount)}</span></div>
+            <div className="flex justify-between"><span className="text-neutral-500">Subtotal</span><span className="font-mono tabular-nums">{money(invoice.subtotal)}</span></div>
+            {invoice.discount > 0 && <div className="flex justify-between"><span className="text-neutral-500">Discount</span><span className="font-mono tabular-nums">−{money(invoice.discount)}</span></div>}
+            {invoice.vatRate > 0 && <div className="flex justify-between"><span className="text-neutral-500">VAT ({invoice.vatRate}%)</span><span className="font-mono tabular-nums">{money(invoice.vatAmount)}</span></div>}
+            {invoice.skillPromoAmount > 0 && (
+              <div className="flex justify-between">
+                <span className="text-neutral-500">Skill promotional ({invoice.skillPromoRate}%)</span>
+                <span className="font-mono tabular-nums">{money(invoice.skillPromoAmount)}</span>
+              </div>
+            )}
             <div className="flex justify-between pt-2 border-t border-neutral-100 text-base font-semibold">
-              <span>Total</span><span className="font-mono tabular-nums">{num(invoice.totalAmount)}</span>
+              <span>Total</span><span className="font-mono tabular-nums">{money(invoice.totalAmount)}</span>
             </div>
           </div>
         </div>
@@ -216,7 +223,7 @@ export function InvoiceDetail() {
           <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between">
             <h2 className="text-[15px] font-semibold">Payments</h2>
             <span className={`font-mono tabular-nums text-sm ${balance.outstanding > 0 ? 'text-red-700' : 'text-emerald-700'}`}>
-              {balance.outstanding > 0 ? `${num(balance.outstanding)} outstanding` : 'Settled'}
+              {balance.outstanding > 0 ? `${money(balance.outstanding)} outstanding` : 'Settled'}
             </span>
           </div>
           {payments.length === 0 ? (
@@ -232,7 +239,7 @@ export function InvoiceDetail() {
                   </div>
                   <div className="flex items-center gap-3">
                     {p.status !== 'verified' && <span className="text-xs text-amber-700 capitalize">{p.status}</span>}
-                    <span className={`font-mono tabular-nums ${p.amount < 0 ? 'text-red-700' : ''}`}>{num(p.amount)}</span>
+                    <span className={`font-mono tabular-nums ${p.amount < 0 ? 'text-red-700' : ''}`}>{money(p.amount)}</span>
                   </div>
                 </li>
               ))}
