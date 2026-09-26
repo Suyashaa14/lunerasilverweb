@@ -405,3 +405,4 @@ before worrying about how it looks.
 | 2026-09-26 | bug | **Retired pieces were listed publicly for sale.** Public listing now shows only available/reserved. 88 tests. |
 | 2026-09-26 | F5.3 | Storefront still switched off — your call. Two lines to re-enable. |
 | 2026-09-26 | — | **All frontend phases complete** bar the two decisions (invoice print format, shop on/off). |
+| 2026-09-26 | F6 | **Navigation rebuilt.** Sidebar is now five sections plus Settings, each a dropdown that opens to show its own screens. Selling, Invoices and Orders live together under **Sales**. Phone keeps a 5-slot bottom bar (Sell · Invoices · Stock · Money · More) and shows the open section's screens as a tab strip, since it has no sidebar. Money carries the pending-payment count. No routes changed. **DONE**. |
