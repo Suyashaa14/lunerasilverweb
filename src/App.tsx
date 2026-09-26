@@ -27,6 +27,9 @@ import { PurchaseList } from './pages/admin/PurchaseList';
 import { PurchaseForm } from './pages/admin/PurchaseForm';
 import { PurchaseDetail } from './pages/admin/PurchaseDetail';
 import { StockCheck } from './pages/admin/StockCheck';
+import { Reports } from './pages/admin/Reports';
+import { Ledger } from './pages/admin/Ledger';
+import { YearEnd } from './pages/admin/YearEnd';
 import { ExpensesList } from './pages/admin/ExpensesList';
 import { ExpenseForm } from './pages/admin/ExpenseForm';
 import { AnalyticsPage } from './pages/admin/AnalyticsPage';
@@ -85,6 +88,9 @@ function App() {
         <Route path="expenses" element={<ExpensesList />} />
         <Route path="expenses/new" element={<ExpenseForm />} />
         <Route path="expenses/:id/edit" element={<ExpenseForm />} />
+        <Route path="reports" element={<Reports />} />
+        <Route path="ledger" element={<Ledger />} />
+        <Route path="year-end" element={<YearEnd />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>

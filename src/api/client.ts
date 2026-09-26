@@ -126,3 +126,29 @@ export function authPost(path: string, body?: unknown) {
     body: body ? JSON.stringify(body) : undefined,
   }).then(handle);
 }
+
+/**
+ * Downloads a file from an authenticated endpoint.
+ *
+ * A plain <a href> cannot carry the bearer token, so the browser would be sent
+ * an unauthenticated request and get a 401 back as the "file". Fetch it
+ * properly, then hand the blob to a temporary link.
+ */
+export async function apiDownload(path: string, filename: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/api${path}`, { headers: withAuth() });
+
+  if (!res.ok) {
+    if (res.status === 401) clearToken();
+    throw new ApiError(`Could not download (${res.status})`, res.status);
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}

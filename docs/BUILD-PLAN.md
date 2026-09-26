@@ -256,28 +256,52 @@ bill, which is a gap in history, not a contradiction. Currently 1 such piece and
 
 ---
 
-## Phase F3 — The books
+## Phase F3 — The books · `COMPLETE`
 
-### Step F3.1 — Reports hub · `TODO`
-One page, period picker, links to each report. Profit and loss and balance sheet
-first, each with a **Download CSV** button (`?format=csv` already works).
+### Step F3.1 — Reports hub · `DONE`
+`Reports.tsx` — **one page, nine reports**, a shared period picker and a
+**Download CSV** button where the API supports it.
 
-### Step F3.2 — Ageing and stock valuation · `TODO`
-Aged receivables and payables with their buckets; stock at cost, flagging pieces
-with no cost price.
+One page rather than nine routes because the period is the thing you change
+most: pick a date range once and move between reports without re-entering it.
 
-### Step F3.3 — Registers and VAT · `TODO`
-Sales and purchase registers, and the VAT return. The VAT page must show the
-PAN-only message rather than a grid of zeros with no explanation.
+CSV needed a new `apiDownload()` in the API client. A plain `<a href>` cannot
+carry the bearer token, so the browser would have been sent unauthenticated and
+saved a `401` as the file.
 
-### Step F3.4 — Ledger · `TODO`
-Trial balance with its debits-equal-credits proof, journal entry list and drill
-down, chart of accounts, and a manual journal entry form that refuses to submit
-unless it balances.
+### Step F3.2 — Ageing and stock valuation · `DONE`
+Four bucket cards (current, 31–60, 61–90, over 90) above the detail, with the
+over-90 card turning red when it has anything in it.
 
-### Step F3.5 — Year end · `TODO`
-Period list with status, close and reopen. Closing must show the trial balance
-and refuse if it does not balance. Reopening must demand a reason.
+Stock valuation shows pieces, silver, value at cost, and **pieces with no cost
+price** as its own amber figure — with a line saying plainly that those are not
+counted, so the real stock is worth more than the number shown.
+
+### Step F3.3 — Registers and VAT · `DONE`
+Both registers with their tax split and a totals row; void invoices stay listed,
+greyed and at zero.
+
+The VAT return carries a **PAN only** pill and the explanation, plus how much
+VAT was paid to suppliers that cannot be reclaimed — rather than a grid of
+zeros with nothing to explain them.
+
+### Step F3.4 — Ledger · `DONE`
+`Ledger.tsx` — journal list, click any entry to see both sides, and the chart of
+accounts. Trial balance lives in Reports with the rest.
+
+**The manual entry form takes two accounts and one amount**, not a free line
+editor. Phrased as *"the account receiving value"* and *"the account giving
+value"* rather than debit and credit alone. It cannot produce an unbalanced
+entry, because the same figure goes both ways by construction. Anything more
+complex belongs with the accountant.
+
+### Step F3.5 — Year end · `DONE`
+Each fiscal year with its dates, status and whether its books balance — in
+green, or in red with the exact difference.
+
+Closing requires **typing the year's name**, and says what closing means before
+you do. Reopening demands a reason, and says the reason is kept because an
+auditor will ask.
 
 ---
 
@@ -325,4 +349,9 @@ before worrying about how it looks.
 | 2026-09-26 | F2.2 | Purchase bills — list, form with per-line stock-in, detail. Cost price is real. **DONE**. |
 | 2026-09-26 | F2.3 | Jewellery form rebuilt with live price and margin panels. **DONE**. |
 | 2026-09-26 | F2.4 | Stock check surfacing ledger disagreements. **DONE**. |
-| 2026-09-26 | — | **Phase F2 complete.** Next: F3 — the books (reports and ledger). |
+| 2026-09-26 | — | **Phase F2 complete.** |
+| 2026-09-26 | F3.1–F3.3 | Reports hub: 9 reports, shared period picker, authenticated CSV download. **DONE**. |
+| 2026-09-26 | F3.4–F3.5 | Ledger with journal drill-down and manual entry; year-end close/reopen. **DONE**. |
+| 2026-09-26 | bug | **Invoices were dated 5h45m in the future** — a local clock reading stored as UTC. Aged receivables silently showed nothing owed. Fixed, with two regression tests. |
+| 2026-09-26 | bug | A customer test used a fixed phone number that collided with real data. It now generates its own. |
+| 2026-09-26 | — | **Phase F3 complete.** 86 backend tests passing. Next: F4 (uploads, users). |

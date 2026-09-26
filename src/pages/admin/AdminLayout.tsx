@@ -55,9 +55,9 @@ const SECTIONS: NavSection[] = [
     adminOnly: true,
     links: [
       { to: '/admin/analytics', label: 'Analytics' },
-      { to: '/admin/reports', label: 'Reports', soon: true },
-      { to: '/admin/ledger', label: 'Ledger', soon: true },
-      { to: '/admin/year-end', label: 'Year end', soon: true },
+      { to: '/admin/reports', label: 'Reports' },
+      { to: '/admin/ledger', label: 'Ledger' },
+      { to: '/admin/year-end', label: 'Year end' },
     ],
   },
   {
