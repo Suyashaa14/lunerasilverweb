@@ -3,15 +3,31 @@
  * about the same number.
  */
 
+/**
+ * A figure that is missing is shown as missing.
+ *
+ * These used to throw on null or undefined, which blanked the whole screen over
+ * one absent number. They must not invent a zero instead: on an accounting
+ * screen a zero is a claim, and "no cost price" is not the same as "cost
+ * nothing". A dash says neither.
+ */
+const MISSING = '—';
+const isNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
+
 /** Whole rupees with thousands separators. The default for money on screen. */
-export const num = (value: number): string => Math.round(value).toLocaleString();
+export const num = (value: number | null | undefined): string =>
+  isNumber(value) ? Math.round(value).toLocaleString() : MISSING;
 
 /** Two decimals. Used where the arithmetic is shown and must add up on the page. */
-export const money = (value: number): string =>
-  value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export const money = (value: number | null | undefined): string =>
+  isNumber(value)
+    ? value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : MISSING;
 
 /** Silver is weighed to three decimals throughout. */
-export const grams = (value: number): string => value.toFixed(3);
+export const grams = (value: number | null | undefined): string =>
+  isNumber(value) ? value.toFixed(3) : MISSING;
 
 export const percent = (value: number): string => `${value}%`;
 

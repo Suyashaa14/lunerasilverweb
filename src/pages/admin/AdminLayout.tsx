@@ -5,6 +5,7 @@ import { BookOpen, Boxes, ChevronDown, CircleUser, FileText, Home, LogOut, Plus,
 import { useAuth } from '../../context/AuthContext';
 import { apiGet } from '../../api/client';
 import { AlertsBell } from './AlertsBell';
+import { ErrorBoundary } from '../../components/admin/ErrorBoundary';
 
 interface ChildDef {
   to: string;
@@ -346,7 +347,9 @@ export function AdminLayout() {
           </div>
         )}
         {phoneTabRow}
-        <Outlet />
+        <ErrorBoundary key={location.pathname}>
+          <Outlet />
+        </ErrorBoundary>
       </main>
 
       {/* Phone tab bar. Fixed, thumb height, safe-area aware. */}
