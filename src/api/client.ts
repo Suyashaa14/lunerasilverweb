@@ -49,6 +49,12 @@ function withAuth(headers?: Record<string, string>): Record<string, string> | un
 }
 
 async function handle(res: Response) {
+  // A 304 means the browser revalidated against a cached copy. These endpoints
+  // answer "what is it right now", so a cached figure is a wrong figure -- and
+  // a 304 that reaches here carries no body at all.
+  if (res.status === 304) {
+    throw new ApiError('The browser served a stale copy. Reload the page.', 304);
+  }
   if (res.status === 401) {
     // The token is missing, expired or rejected -- drop it so the next load
     // starts clean instead of retrying with a credential the server refuses.
@@ -73,7 +79,7 @@ export function apiGet(path: string) {
   const pending = inFlightGets.get(path);
   if (pending) return pending;
 
-  const request = fetch(`${BASE_URL}/api${path}`, { headers: withAuth() })
+  const request = fetch(`${BASE_URL}/api${path}`, { headers: withAuth(), cache: 'no-store' })
     .then(handle)
     .finally(() => inFlightGets.delete(path));
 
@@ -135,7 +141,7 @@ export function authPost(path: string, body?: unknown) {
  * properly, then hand the blob to a temporary link.
  */
 export async function apiDownload(path: string, filename: string): Promise<void> {
-  const res = await fetch(`${BASE_URL}/api${path}`, { headers: withAuth() });
+  const res = await fetch(`${BASE_URL}/api${path}`, { headers: withAuth(), cache: 'no-store' });
 
   if (!res.ok) {
     if (res.status === 401) clearToken();

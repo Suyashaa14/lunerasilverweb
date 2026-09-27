@@ -20,6 +20,16 @@ const REPORTS: { key: ReportKey; label: string; csv: boolean }[] = [
   { key: 'vat-return', label: 'VAT return', csv: false },
 ];
 
+/**
+ * A list from the server, or nothing.
+ *
+ * These screens walked the payload directly, so one unexpected response --  a
+ * revalidated 304 with no body, an error object, a field renamed -- threw
+ * `undefined.map` and took the whole page down. An empty section is a far
+ * better answer than a blank window.
+ */
+const list = <T,>(value: T[] | null | undefined): T[] => (Array.isArray(value) ? value : []);
+
 const Row = ({ label, value, bold, tone, indent }: {
   label: string; value: string; bold?: boolean; tone?: 'good' | 'bad'; indent?: boolean;
 }) => (
@@ -119,12 +129,12 @@ export function Reports() {
             <Card>
               <CardHead title="Profit and loss" right={<span className="text-xs text-neutral-400">Gross margin {data.grossMarginPercent}%</span>} />
               <div className="px-5 py-4 space-y-2">
-                {data.income.map((l: any) => <Row key={l.code} label={l.name} value={money(l.amount)} indent />)}
+                {list(data.income).map((l: any) => <Row key={l.code} label={l.name} value={money(l.amount)} indent />)}
                 <Row label="Total income" value={money(data.totalIncome)} />
-                {data.costOfSales.map((l: any) => <Row key={l.code} label={l.name} value={`−${money(l.amount)}`} indent />)}
+                {list(data.costOfSales).map((l: any) => <Row key={l.code} label={l.name} value={`−${money(l.amount)}`} indent />)}
                 <Row label="Gross profit" value={money(data.grossProfit)} bold />
                 <div className="pt-3" />
-                {data.expenses.map((l: any) => <Row key={l.code} label={l.name} value={`−${money(l.amount)}`} indent />)}
+                {list(data.expenses).map((l: any) => <Row key={l.code} label={l.name} value={`−${money(l.amount)}`} indent />)}
                 <Row label="Net profit" value={money(data.netProfit)} bold tone={data.netProfit >= 0 ? 'good' : 'bad'} />
               </div>
             </Card>
@@ -135,7 +145,7 @@ export function Reports() {
               <Card>
                 <CardHead title="What you have" />
                 <div className="px-5 py-4 space-y-2">
-                  {data.assets.map((l: any) => <Row key={l.code} label={l.name} value={money(l.amount)} indent />)}
+                  {list(data.assets).map((l: any) => <Row key={l.code} label={l.name} value={money(l.amount)} indent />)}
                   <Row label="Total assets" value={money(data.totalAssets)} bold />
                 </div>
               </Card>
@@ -147,8 +157,8 @@ export function Reports() {
                     : <span className="text-xs text-red-700">off by {money(data.difference)}</span>}
                 />
                 <div className="px-5 py-4 space-y-2">
-                  {data.liabilities.map((l: any) => <Row key={l.code} label={l.name} value={money(l.amount)} indent />)}
-                  {data.equity.map((l: any) => <Row key={l.code} label={l.name} value={money(l.amount)} indent />)}
+                  {list(data.liabilities).map((l: any) => <Row key={l.code} label={l.name} value={money(l.amount)} indent />)}
+                  {list(data.equity).map((l: any) => <Row key={l.code} label={l.name} value={money(l.amount)} indent />)}
                   <Row label="Profit for the period" value={money(data.profitForPeriod)} indent />
                   <Row label="Total" value={money(data.totalFunding)} bold />
                 </div>
@@ -174,7 +184,7 @@ export function Reports() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100">
-                  {data.rows.map((r: any) => (
+                  {list(data.rows).map((r: any) => (
                     <tr key={r.code}>
                       <td className="px-5 py-2.5"><span className="font-mono tabular-nums text-neutral-400 mr-2">{r.code}</span>{r.name}</td>
                       <td className="px-5 py-2.5 text-right font-mono tabular-nums">{r.debit ? money(r.debit) : '—'}</td>
@@ -196,10 +206,10 @@ export function Reports() {
             <>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
                 {BUCKETS.map((b) => (
-                  <Card key={b.key} className={`px-4 py-3.5 ${b.key === 'over90' && data.buckets[b.key] > 0 ? 'bg-red-50/50' : ''}`}>
+                  <Card key={b.key} className={`px-4 py-3.5 ${b.key === 'over90' && (data.buckets ?? {})[b.key] > 0 ? 'bg-red-50/50' : ''}`}>
                     <div className="text-xs text-neutral-500">{b.label}</div>
-                    <div className={`font-mono tabular-nums text-xl font-semibold mt-1 ${b.key === 'over90' && data.buckets[b.key] > 0 ? 'text-red-700' : ''}`}>
-                      {num(data.buckets[b.key])}
+                    <div className={`font-mono tabular-nums text-xl font-semibold mt-1 ${b.key === 'over90' && (data.buckets ?? {})[b.key] > 0 ? 'text-red-700' : ''}`}>
+                      {num((data.buckets ?? {})[b.key])}
                     </div>
                   </Card>
                 ))}
@@ -207,11 +217,11 @@ export function Reports() {
               <Card>
                 <CardHead title={report === 'aged-receivables' ? 'Unpaid invoices' : 'Unpaid supplier bills'}
                   right={<span className="font-mono tabular-nums text-sm">{num(data.total)} total</span>} />
-                {data.items.length === 0 ? (
+                {list(data.items).length === 0 ? (
                   <div className="px-5 py-10 text-sm text-neutral-400 text-center">Nothing outstanding.</div>
                 ) : (
                   <ul className="divide-y divide-neutral-100">
-                    {data.items.map((i: any) => (
+                    {list(data.items).map((i: any) => (
                       <li key={i.invoiceId ?? i.purchaseId} className="flex items-center justify-between gap-4 px-5 py-3">
                         <div>
                           <span className="font-mono tabular-nums">{i.invoiceNo ?? i.billNo}</span>
@@ -249,7 +259,7 @@ export function Reports() {
               <Card>
                 <CardHead title="By category" />
                 <ul className="divide-y divide-neutral-100">
-                  {data.byCategory.map((c: any) => (
+                  {list(data.byCategory).map((c: any) => (
                     <li key={c.category} className="flex items-center justify-between gap-4 px-5 py-3 text-sm">
                       <span className="capitalize">{c.category}</span>
                       <span className="flex gap-6 font-mono tabular-nums">
@@ -268,7 +278,7 @@ export function Reports() {
             <Card>
               <CardHead title={current.label}
                 right={<span className="font-mono tabular-nums text-sm">{num(data.total)} total</span>} />
-              {data.rows.length === 0 ? (
+              {list(data.rows).length === 0 ? (
                 <div className="px-5 py-10 text-sm text-neutral-400 text-center">Nothing in this period.</div>
               ) : (
                 <TableWrap minWidth={640}>
@@ -284,7 +294,7 @@ export function Reports() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-100">
-                    {data.rows.map((r: any, i: number) => (
+                    {list(data.rows).map((r: any, i: number) => (
                       <tr key={i} className={r.isVoid ? 'text-neutral-400' : ''}>
                         <td className="px-5 py-2.5 font-mono tabular-nums">{r.invoiceNo ?? r.billNo}{r.isVoid && ' (void)'}</td>
                         <td className="px-5 py-2.5 font-mono tabular-nums text-neutral-600">{r.dateBs}</td>
