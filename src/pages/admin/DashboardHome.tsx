@@ -195,7 +195,7 @@ export function DashboardHome() {
         </Card>
 
         {/* Kept in reach of the thumb rather than at the end of the scroll. */}
-        <div className="fixed inset-x-0 bottom-0 p-4 bg-neutral-50/95 backdrop-blur border-t border-neutral-200">
+        <div className="admin-phone-actions fixed inset-x-0 bottom-0 p-4 bg-neutral-50/95 backdrop-blur border-t border-neutral-200">
           <Link
             to="/admin/invoices/new"
             className="block w-full text-center px-4 py-4 rounded-xl bg-neutral-900 text-white text-[17px] font-semibold"

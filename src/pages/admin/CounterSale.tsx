@@ -308,7 +308,7 @@ export function CounterSaleForm({
           </div>
         </div>
       ) : (
-        <div className="md:hidden fixed inset-x-0 bottom-0 p-4 bg-neutral-50/95 backdrop-blur border-t border-neutral-200 flex gap-3 z-30">
+        <div className="md:hidden admin-phone-actions fixed inset-x-0 bottom-0 p-4 bg-neutral-50/95 backdrop-blur border-t border-neutral-200 flex gap-3 z-30">
           <button type="button" onClick={onCancel} className="px-5 py-3.5 rounded-xl border border-neutral-200 bg-white text-[15px] font-medium">
             Cancel
           </button>

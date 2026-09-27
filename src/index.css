@@ -5440,3 +5440,19 @@ body:has(.admin-shell) {
     content: none !important;
   }
 }
+
+/* Phone tab bar and the action bars that sit on top of it. The tab bar is
+   fixed to the bottom, so any fixed save/submit bar must be lifted above it or
+   the tab bar covers it completely. The extra bottom padding clears the raised
+   "New sale" button, which pokes ~20px above the tab bar. */
+.admin-shell {
+  --admin-tabbar-h: calc(57px + env(safe-area-inset-bottom, 0px));
+}
+.admin-tabbar {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.admin-phone-actions {
+  bottom: var(--admin-tabbar-h) !important;
+  padding-bottom: 28px !important;
+  z-index: 30;
+}

@@ -360,7 +360,7 @@ export function PurchaseForm() {
         </div>
       </div>
 
-      <div className="md:hidden fixed inset-x-0 bottom-0 p-4 bg-neutral-50/95 backdrop-blur border-t border-neutral-200 flex gap-3">
+      <div className="md:hidden admin-phone-actions fixed inset-x-0 bottom-0 p-4 bg-neutral-50/95 backdrop-blur border-t border-neutral-200 flex gap-3">
         <button type="button" onClick={() => navigate('/admin/purchases')} className={BUTTON.secondary}>Cancel</button>
         <button type="submit" disabled={saving} className="flex-1 px-4 py-3.5 rounded-xl bg-neutral-900 text-white text-[15px] font-semibold disabled:opacity-50">
           {saving ? 'Saving…' : `Save bill · ${money(total)}`}
