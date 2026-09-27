@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ComponentType } from 'react';
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { BookOpen, Boxes, ChevronDown, FileText, Home, LogOut, MoreHorizontal, Settings, ShoppingBag, Wallet, X } from 'lucide-react';
+import { BookOpen, Boxes, ChevronDown, FileText, Home, LogOut, MoreHorizontal, Plus, Settings, ShoppingBag, Wallet, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { apiGet } from '../../api/client';
 import { AlertsBell } from './AlertsBell';
@@ -98,12 +98,20 @@ const SETTINGS: SectionDef = {
 };
 
 /** The four things done standing at the counter. Everything else is behind More. */
+/**
+ * Four places and one action.
+ *
+ * Selling used to sit here as a fifth tab called "Sell", one letter away from
+ * "Sales" and right beside it. It is not a place you go, it is the thing you
+ * do, so it is now the button in the middle and reads as an action.
+ */
 const PHONE_TABS: Array<ChildDef & { label: string; icon: ComponentType<{ className?: string }>; section?: string; badge?: 'payments' }> = [
-  { to: '/admin/invoices/new', label: 'Sell', icon: ShoppingBag },
   { to: '/admin/invoices', label: 'Sales', icon: FileText, not: ['/admin/invoices/new'] },
   { to: '/admin/jewelries', label: 'Stock', icon: Boxes, section: 'stock' },
   { to: '/admin/payments', label: 'Money', icon: Wallet, section: 'money', badge: 'payments' },
 ];
+
+const NEW_SALE = '/admin/invoices/new';
 
 const ALL_SECTIONS = [...SECTIONS, SETTINGS];
 
@@ -306,7 +314,7 @@ export function AdminLayout() {
 
   const phoneActive = (t: (typeof PHONE_TABS)[number]) =>
     t.section ? current?.id === t.section : childActive(t, location.pathname);
-  const moreActive = !PHONE_TABS.some(phoneActive);
+  const moreActive = location.pathname !== NEW_SALE && !PHONE_TABS.some(phoneActive);
 
   return (
     <div className="admin-shell min-h-screen bg-neutral-50 text-neutral-900 md:flex">
@@ -330,8 +338,8 @@ export function AdminLayout() {
       </main>
 
       {/* Phone tab bar. Fixed, thumb height, safe-area aware. */}
-      <nav className="admin-tabbar md:hidden fixed bottom-0 inset-x-0 z-40 flex border-t border-neutral-200 bg-white">
-        {PHONE_TABS.map((t) => {
+      <nav className="admin-tabbar md:hidden fixed bottom-0 inset-x-0 z-40 flex items-stretch border-t border-neutral-200 bg-white">
+        {PHONE_TABS.slice(0, 2).map((t) => {
           const Icon = t.icon;
           const active = phoneActive(t);
           const count = t.badge === 'payments' ? pendingPayments : 0;
@@ -354,6 +362,45 @@ export function AdminLayout() {
             </button>
           );
         })}
+        {/* The one thing done standing at the counter. Deliberately not a tab:
+            it is an action, and it should not read as a fifth place to be. */}
+        <div className="flex-1 flex justify-center">
+          <button
+            type="button"
+            onClick={() => navigate(NEW_SALE)}
+            aria-label="New sale"
+            className={`admin-primary-action -mt-5 w-14 h-14 rounded-full bg-neutral-900 text-white flex items-center justify-center shadow-lg border-4 border-white ${
+              location.pathname === NEW_SALE ? 'ring-2 ring-neutral-300' : ''
+            }`}
+          >
+            <Plus className="w-6 h-6" />
+          </button>
+        </div>
+
+        {PHONE_TABS.slice(2).map((t) => {
+          const Icon = t.icon;
+          const active = phoneActive(t);
+          const count = t.badge === 'payments' ? pendingPayments : 0;
+          return (
+            <button
+              key={t.to}
+              type="button"
+              onClick={() => navigate(t.to)}
+              className={`relative flex-1 flex flex-col items-center gap-1 py-2 pb-2.5 text-[10.5px] font-medium ${
+                active ? 'text-neutral-900' : 'text-neutral-400'
+              }`}
+            >
+              <Icon className="w-[19px] h-[19px]" />
+              {t.label}
+              {count > 0 && (
+                <span className="absolute top-1 right-[calc(50%-18px)] min-w-[16px] h-4 px-1 rounded-full bg-amber-500 text-white text-[10px] font-semibold flex items-center justify-center">
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+
         <button
           type="button"
           onClick={() => setMoreOpen(true)}
