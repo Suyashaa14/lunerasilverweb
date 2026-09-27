@@ -16,6 +16,11 @@ interface Detail {
   silverWeightGrams: number; makingCharge: number;
   stoneWeightGrams: number | null; stonePrice: number | null;
   costPrice: number | null; priceToday: number | null;
+  profitAmount: number;
+  costBreakdown: {
+    silverRatePaid: number | null; silver: number | null;
+    making: number; stone: number; unexplained: number | null;
+  } | null;
   margin: number | null; marginPercent: number | null;
   daysInStock: number | null; staleDays: number;
   imageUrl: string | null;
@@ -181,16 +186,45 @@ export function JewelryDetail() {
                 <div className="flex justify-between"><span className="text-neutral-500">Silver, {p.silverWeightGrams.toFixed(3)} g × {p.silverRate.perGram.toFixed(2)}</span><span className="font-mono tabular-nums">{num(silverValue)}</span></div>
                 <div className="flex justify-between"><span className="text-neutral-500">Making charge</span><span className="font-mono tabular-nums">{num(p.makingCharge)}</span></div>
                 {p.stonePrice ? <div className="flex justify-between"><span className="text-neutral-500">Stone</span><span className="font-mono tabular-nums">{num(p.stonePrice)}</span></div> : null}
+                <div className="flex justify-between">
+                  <span className="text-neutral-500">Your profit</span>
+                  <span className={`font-mono tabular-nums ${p.profitAmount > 0 ? '' : 'text-neutral-400'}`}>{num(p.profitAmount)}</span>
+                </div>
                 <div className="flex justify-between pt-2 border-t border-neutral-100 text-base font-semibold">
                   <span>{onShelf ? 'Sells for' : 'Would sell for'}</span>
-                  <span className="font-mono tabular-nums">{num(p.priceToday ?? (silverValue + p.makingCharge + (p.stonePrice ?? 0)))}</span>
+                  <span className="font-mono tabular-nums">
+                    {num(p.priceToday ?? (silverValue + p.makingCharge + (p.stonePrice ?? 0) + p.profitAmount))}
+                  </span>
                 </div>
+                <p className="text-xs text-neutral-400 pt-1">Only the silver moves with the daily rate.</p>
               </div>
               <div className="px-5 py-4 space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-neutral-500">Cost</span><span className={`font-mono tabular-nums ${p.costPrice === null ? 'text-red-600' : ''}`}>{p.costPrice === null ? 'not set' : num(p.costPrice)}</span></div>
+                {p.costBreakdown?.silver !== null && p.costBreakdown && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-neutral-500">
+                        Silver paid, {p.silverWeightGrams.toFixed(3)} g × {p.costBreakdown.silverRatePaid?.toFixed(2)}
+                      </span>
+                      <span className="font-mono tabular-nums">{num(p.costBreakdown.silver)}</span>
+                    </div>
+                    <div className="flex justify-between"><span className="text-neutral-500">Making paid</span><span className="font-mono tabular-nums">{num(p.costBreakdown.making)}</span></div>
+                    {p.costBreakdown.stone > 0 && (
+                      <div className="flex justify-between"><span className="text-neutral-500">Stone paid</span><span className="font-mono tabular-nums">{num(p.costBreakdown.stone)}</span></div>
+                    )}
+                    {p.costBreakdown.unexplained !== null && Math.abs(p.costBreakdown.unexplained) >= 0.01 && (
+                      <div className="flex justify-between"><span className="text-neutral-500">Tax on the bill</span><span className="font-mono tabular-nums">{num(p.costBreakdown.unexplained)}</span></div>
+                    )}
+                  </>
+                )}
+                <div className={`flex justify-between ${p.costBreakdown?.silver != null ? 'pt-2 border-t border-neutral-100 font-semibold' : ''}`}>
+                  <span className={p.costBreakdown?.silver != null ? '' : 'text-neutral-500'}>Cost</span>
+                  <span className={`font-mono tabular-nums ${p.costPrice === null ? 'text-red-600' : ''}`}>{p.costPrice === null ? 'not set' : num(p.costPrice)}</span>
+                </div>
                 <div className="flex justify-between"><span className="text-neutral-500">Margin</span><span className={`font-mono tabular-nums ${p.margin !== null && p.margin >= 0 ? 'text-emerald-700' : p.margin !== null ? 'text-red-700' : 'text-neutral-400'}`}>{p.margin === null ? '—' : num(p.margin)}</span></div>
                 <div className="flex justify-between"><span className="text-neutral-500">Margin %</span><span className={`font-mono tabular-nums ${p.marginPercent !== null && p.marginPercent >= 0 ? 'text-emerald-700' : 'text-neutral-400'}`}>{p.marginPercent === null ? '—' : `${p.marginPercent}%`}</span></div>
-                <p className="text-xs text-neutral-400 pt-2">Staff only. Never shown on the storefront.</p>
+                <p className="text-xs text-neutral-400 pt-2">
+                  Fixed the day it was bought. Staff only, never shown on the storefront.
+                </p>
               </div>
             </div>
           </Card>

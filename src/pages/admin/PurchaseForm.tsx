@@ -18,18 +18,31 @@ interface Line {
   sku: string;
   purity: string;
   silverWeightGrams: string;
+  /** The silver rate paid to this supplier on this bill. Not today's. */
+  ratePerGram: string;
   makingCharge: string;
+  stoneWeightGrams: string;
   stonePrice: string;
+  /** What the shop adds on top when it sells. */
+  profitAmount: string;
 }
 
-const emptyLine = (key: number): Line => ({
+const emptyLine = (key: number, ratePerGram = ''): Line => ({
   key, description: '', unitCost: '', vatAmount: '',
   stockIn: true, name: '', category: 'rings', sku: '', purity: '925',
-  silverWeightGrams: '', makingCharge: '', stonePrice: '',
+  silverWeightGrams: '', ratePerGram, makingCharge: '', stoneWeightGrams: '', stonePrice: '',
+  profitAmount: '',
 });
 
 const CATEGORIES = ['rings', 'necklaces', 'earrings', 'bangles', 'pendants', 'other'];
 const n = (v: string) => (v.trim() === '' ? 0 : Number(v));
+const round2 = (x: number) => Math.round(x * 100) / 100;
+
+/** What this line costs: silver at the rate paid, plus making, plus stone. */
+const lineCost = (l: Line): number =>
+  l.stockIn
+    ? round2(n(l.silverWeightGrams) * n(l.ratePerGram) + n(l.makingCharge) + n(l.stonePrice))
+    : n(l.unitCost);
 
 export function PurchaseForm() {
   const navigate = useNavigate();
@@ -40,17 +53,28 @@ export function PurchaseForm() {
   const [tds, setTds] = useState('');
   const [notes, setNotes] = useState('');
   const [lines, setLines] = useState<Line[]>([emptyLine(1)]);
+  const [todayRate, setTodayRate] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     apiGet('/suppliers').then(setSuppliers).catch(() => setSuppliers([]));
+    // Today's rate is only for the "sells for" preview. The cost uses the rate
+    // typed on the line, which is what was actually paid.
+    apiGet('/settings')
+      .then((st) => {
+        const rate = Number(st?.silverRatePerGram ?? 0);
+        setTodayRate(rate);
+        // A sensible starting point; the shop overwrites it with the bill's rate.
+        setLines((ls) => ls.map((l) => (l.ratePerGram === '' ? { ...l, ratePerGram: String(rate) } : l)));
+      })
+      .catch(() => setTodayRate(0));
   }, []);
 
   const set = (key: number, patch: Partial<Line>) =>
     setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
 
-  const goods = lines.reduce((s, l) => s + n(l.unitCost), 0);
+  const goods = lines.reduce((s, l) => s + lineCost(l), 0);
   const vat = lines.reduce((s, l) => s + n(l.vatAmount), 0);
   const total = goods + vat - n(tds);
   const stockCount = lines.filter((l) => l.stockIn).length;
@@ -64,10 +88,12 @@ export function PurchaseForm() {
 
     for (const l of lines) {
       if (l.description.trim() === '') return setError('Every line needs a description.');
-      if (n(l.unitCost) <= 0) return setError(`"${l.description}" needs a cost.`);
       if (l.stockIn) {
         if (l.name.trim() === '') return setError(`"${l.description}" is going into stock, so it needs a piece name.`);
         if (n(l.silverWeightGrams) <= 0) return setError(`"${l.name}" needs a silver weight.`);
+        if (n(l.ratePerGram) <= 0) return setError(`"${l.name}" needs the silver rate you paid.`);
+      } else if (n(l.unitCost) <= 0) {
+        return setError(`"${l.description}" needs a cost.`);
       }
     }
 
@@ -81,7 +107,9 @@ export function PurchaseForm() {
         notes: notes.trim() || null,
         items: lines.map((l) => ({
           description: l.description.trim(),
-          unitCost: n(l.unitCost),
+          // A stock line's cost is worked out from its parts by the server, so
+          // it is not sent -- the two can never disagree.
+          ...(l.stockIn ? {} : { unitCost: n(l.unitCost) }),
           vatAmount: n(l.vatAmount) || undefined,
           ...(l.stockIn
             ? {
@@ -91,8 +119,11 @@ export function PurchaseForm() {
                   sku: l.sku.trim() || undefined,
                   purity: l.purity.trim() || undefined,
                   silverWeightGrams: n(l.silverWeightGrams),
+                  ratePerGram: n(l.ratePerGram),
                   makingCharge: n(l.makingCharge),
+                  stoneWeightGrams: n(l.stoneWeightGrams) || null,
                   stonePrice: n(l.stonePrice) || null,
+                  profitAmount: n(l.profitAmount) || 0,
                 },
               }
             : {}),
@@ -169,11 +200,21 @@ export function PurchaseForm() {
                     <input value={l.description} onChange={(e) => set(l.key, { description: e.target.value })}
                       placeholder="Moon Ring" className="mt-1 w-full px-3 py-2.5 rounded-lg border border-neutral-200 text-sm" />
                   </label>
-                  <label className="block">
-                    <span className="text-sm text-neutral-600">Cost</span>
-                    <input type="number" step="0.01" value={l.unitCost} onChange={(e) => set(l.key, { unitCost: e.target.value })}
-                      className="mt-1 w-full px-3 py-2.5 rounded-lg border border-neutral-200 text-sm font-mono" />
-                  </label>
+                  {l.stockIn ? (
+                    <div className="block">
+                      <span className="text-sm text-neutral-600">Cost</span>
+                      <div className="mt-1 w-full px-3 py-2.5 rounded-lg border border-neutral-200 bg-neutral-50 text-sm font-mono tabular-nums text-neutral-700">
+                        {money(lineCost(l))}
+                      </div>
+                      <span className="text-xs text-neutral-400 mt-1 block">Worked out below, from what you pay.</span>
+                    </div>
+                  ) : (
+                    <label className="block">
+                      <span className="text-sm text-neutral-600">Cost</span>
+                      <input type="number" step="0.01" value={l.unitCost} onChange={(e) => set(l.key, { unitCost: e.target.value })}
+                        className="mt-1 w-full px-3 py-2.5 rounded-lg border border-neutral-200 text-sm font-mono" />
+                    </label>
+                  )}
                   <label className="block">
                     <span className="text-sm text-neutral-600">VAT on this line</span>
                     <input type="number" step="0.01" value={l.vatAmount} onChange={(e) => set(l.key, { vatAmount: e.target.value })}
@@ -217,23 +258,68 @@ export function PurchaseForm() {
                         className="mt-1 w-full px-3 py-2.5 rounded-lg border border-neutral-200 text-sm font-mono" />
                     </label>
                     <label className="block">
-                      <span className="text-sm text-neutral-600">Making charge</span>
-                      <input type="number" step="0.01" value={l.makingCharge} onChange={(e) => set(l.key, { makingCharge: e.target.value })}
+                      <span className="text-sm text-neutral-600">Silver rate paid (/g)</span>
+                      <input type="number" step="0.01" value={l.ratePerGram} onChange={(e) => set(l.key, { ratePerGram: e.target.value })}
                         className="mt-1 w-full px-3 py-2.5 rounded-lg border border-neutral-200 text-sm font-mono" />
-                      <span className="text-xs text-neutral-400 mt-1 block">Your margin when it sells.</span>
+                      <span className="text-xs text-neutral-400 mt-1 block">
+                        The rate on this bill. The cost keeps it for ever.
+                      </span>
                     </label>
                     <label className="block">
-                      <span className="text-sm text-neutral-600">Stone price</span>
+                      <span className="text-sm text-neutral-600">Making charge paid</span>
+                      <input type="number" step="0.01" value={l.makingCharge} onChange={(e) => set(l.key, { makingCharge: e.target.value })}
+                        className="mt-1 w-full px-3 py-2.5 rounded-lg border border-neutral-200 text-sm font-mono" />
+                      <span className="text-xs text-neutral-400 mt-1 block">What the supplier charges to make it.</span>
+                    </label>
+                    <label className="block">
+                      <span className="text-sm text-neutral-600">Stone weight (g)</span>
+                      <input type="number" step="0.001" value={l.stoneWeightGrams} onChange={(e) => set(l.key, { stoneWeightGrams: e.target.value })}
+                        className="mt-1 w-full px-3 py-2.5 rounded-lg border border-neutral-200 text-sm font-mono" />
+                    </label>
+                    <label className="block">
+                      <span className="text-sm text-neutral-600">Stone price paid</span>
                       <input type="number" step="0.01" value={l.stonePrice} onChange={(e) => set(l.key, { stonePrice: e.target.value })}
                         className="mt-1 w-full px-3 py-2.5 rounded-lg border border-neutral-200 text-sm font-mono" />
                     </label>
+                    <label className="block">
+                      <span className="text-sm text-neutral-600">Your profit</span>
+                      <input type="number" step="0.01" value={l.profitAmount} onChange={(e) => set(l.key, { profitAmount: e.target.value })}
+                        className="mt-1 w-full px-3 py-2.5 rounded-lg border border-neutral-200 text-sm font-mono" />
+                      <span className="text-xs text-neutral-400 mt-1 block">Added on top when it sells. Changeable later.</span>
+                    </label>
+
+                    {/* The whole journey on one line: paid, held, sold. */}
+                    <div className="sm:col-span-3 rounded-lg bg-neutral-50 px-4 py-3 text-sm">
+                      <div className="flex flex-wrap justify-between gap-2">
+                        <span className="text-neutral-600">
+                          You pay {n(l.silverWeightGrams) || 0} g x {money(n(l.ratePerGram))}
+                          {n(l.makingCharge) > 0 && <> + {money(n(l.makingCharge))} making</>}
+                          {n(l.stonePrice) > 0 && <> + {money(n(l.stonePrice))} stone</>}
+                        </span>
+                        <span className="font-mono tabular-nums font-semibold">{money(lineCost(l))}</span>
+                      </div>
+                      <div className="flex flex-wrap justify-between gap-2 mt-1.5 pt-1.5 border-t border-neutral-200">
+                        <span className="text-neutral-600">
+                          Sells today at {money(todayRate)}/g
+                          {n(l.profitAmount) > 0 && <> with {money(n(l.profitAmount))} profit</>}
+                        </span>
+                        <span className="font-mono tabular-nums font-semibold">
+                          {money(round2(
+                            n(l.silverWeightGrams) * todayRate + n(l.makingCharge) + n(l.stonePrice) + n(l.profitAmount),
+                          ))}
+                        </span>
+                      </div>
+                      <div className="text-xs text-neutral-400 mt-1.5">
+                        Only the silver moves with the daily rate. The making charge and stone are passed on at what you paid.
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
             </Card>
           ))}
 
-          <button type="button" onClick={() => setLines([...lines, emptyLine(Date.now())])} className={BUTTON.secondary}>
+          <button type="button" onClick={() => setLines([...lines, emptyLine(Date.now(), String(todayRate))])} className={BUTTON.secondary}>
             Add another line
           </button>
         </div>

@@ -34,6 +34,7 @@ export function JewelryForm() {
   const [stoneWeightGrams, setStoneWeight] = useState('');
   const [stonePrice, setStonePrice] = useState('');
   const [costPrice, setCostPrice] = useState('');
+  const [profitAmount, setProfitAmount] = useState('');
   const [photo, setPhoto] = useState<File | null>(null);
 
   const [rate, setRate] = useState(0);
@@ -58,6 +59,7 @@ export function JewelryForm() {
         setStoneWeight(p.stoneWeightGrams === null ? '' : String(p.stoneWeightGrams));
         setStonePrice(p.stonePrice === null ? '' : String(p.stonePrice));
         setCostPrice(p.costPrice === null ? '' : String(p.costPrice));
+        setProfitAmount(p.profitAmount ? String(p.profitAmount) : '');
       })
       .catch(() => setError('Could not load this piece.'))
       .finally(() => setLoading(false));
@@ -66,7 +68,7 @@ export function JewelryForm() {
   // Exactly the formula printed on the jewellery screens, worked out live so
   // the figure here and the figure on the detail page can never differ.
   const silverValue = n(silverWeightGrams) * rate;
-  const price = silverValue + n(makingCharge) + n(stonePrice);
+  const price = silverValue + n(makingCharge) + n(stonePrice) + n(profitAmount);
   const cost = costPrice.trim() === '' ? null : n(costPrice);
   const margin = cost === null ? null : price - cost;
   const marginPercent = cost === null || price === 0 ? null : Math.round(((price - cost) / price) * 1000) / 10;
@@ -88,6 +90,7 @@ export function JewelryForm() {
         sku: editing || sku.trim() === '' ? undefined : sku.trim(),
         material: material.trim() === '' ? undefined : material.trim(),
         purity: purity.trim() === '' ? undefined : purity.trim(),
+        profitAmount: n(profitAmount),
         pricingMode: 'makingCharge',
         makingCharge: n(makingCharge),
         silverWeightGrams: n(silverWeightGrams),
@@ -212,7 +215,7 @@ export function JewelryForm() {
                 <span className="text-sm text-neutral-600">Making charge (Rs)</span>
                 <input type="number" step="0.01" value={makingCharge} onChange={(e) => setMaking(e.target.value)}
                   className="mt-1 w-full px-3 py-2.5 rounded-lg border border-neutral-200 text-sm font-mono" />
-                <span className="text-xs text-neutral-400 mt-1 block">This is your margin on the silver.</span>
+                <span className="text-xs text-neutral-400 mt-1 block">What the supplier charged to make it. Passed on at cost.</span>
               </label>
             </div>
           </Card>
@@ -230,7 +233,7 @@ export function JewelryForm() {
                 <span className="text-sm text-neutral-600">Stone price (Rs)</span>
                 <input type="number" step="0.01" value={stonePrice} onChange={(e) => setStonePrice(e.target.value)}
                   className="mt-1 w-full px-3 py-2.5 rounded-lg border border-neutral-200 text-sm font-mono" />
-                <span className="text-xs text-neutral-400 mt-1 block">Added to the selling price.</span>
+                <span className="text-xs text-neutral-400 mt-1 block">What the stone cost. Passed on at cost.</span>
               </label>
             </div>
           </Card>
@@ -261,12 +264,19 @@ export function JewelryForm() {
                 <span className="text-neutral-500">Stone</span>
                 <span className={`font-mono tabular-nums ${n(stonePrice) === 0 ? 'text-neutral-400' : ''}`}>{money(n(stonePrice))}</span>
               </div>
+              <label className="flex items-center justify-between gap-3">
+                <span className="text-neutral-500">Your profit</span>
+                <input type="number" step="0.01" value={profitAmount} onChange={(e) => setProfitAmount(e.target.value)}
+                  placeholder="0"
+                  className="w-28 px-3 py-2 rounded-lg border border-neutral-200 text-sm text-right font-mono tabular-nums" />
+              </label>
               <div className="flex justify-between pt-3 border-t border-neutral-100">
                 <span className="text-base font-semibold">Price</span>
                 <span className="font-mono tabular-nums text-2xl font-semibold">{money(price)}</span>
               </div>
               <p className="text-xs text-neutral-400 pt-2">
-                Recalculated from the live silver rate every time. Not stored on the piece.
+                Only the silver moves with the daily rate. The making charge and stone are passed on at what
+                they cost; your profit is what you add on top.
               </p>
             </div>
           </Card>
