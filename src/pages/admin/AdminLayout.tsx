@@ -148,12 +148,16 @@ export function AdminLayout() {
   const [pendingPayments, setPendingPayments] = useState(0);
 
   const current = sectionFor(location.pathname);
-  // One section open at a time, and the one you are in opens itself.
-  const [openId, setOpenId] = useState<string | null>(current?.id ?? null);
+  // Any number of sections may be open at once. Opening one is not a reason to
+  // shut another: the sidebar is a place to look things up, and collapsing the
+  // list someone was reading is the sort of tidying nobody asked for.
+  const [openIds, setOpenIds] = useState<string[]>(current?.id ? [current.id] : []);
 
   useEffect(() => setAccountOpen(false), [location.pathname]);
+  // The section you are in opens itself, and leaves the rest as they were.
   useEffect(() => {
-    if (current?.children) setOpenId(current.id);
+    if (!current?.children) return;
+    setOpenIds((ids) => (ids.includes(current.id) ? ids : [...ids, current.id]));
   }, [current?.id]);
 
   // The one number in the system that is genuinely waiting on a person.
@@ -207,22 +211,17 @@ export function AdminLayout() {
       );
     }
 
-    const open = openId === s.id;
+    const open = openIds.includes(s.id);
     return (
       <div key={s.id}>
         <button
           type="button"
           aria-expanded={open}
-          onClick={() => {
-            // Closed and somewhere else? Open it and go to its first screen.
-            if (!open && !inSection) {
-              setOpenId(s.id);
-              navigate(s.children![0].to);
-              onNavigate?.();
-              return;
-            }
-            setOpenId(open ? null : s.id);
-          }}
+          // Opening a section shows what is inside it. It does not take you
+          // anywhere -- you pick the screen yourself from the list.
+          onClick={() =>
+            setOpenIds((ids) => (ids.includes(s.id) ? ids.filter((id) => id !== s.id) : [...ids, s.id]))
+          }
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition text-left ${
             inSection ? 'text-neutral-900 bg-neutral-100' : 'text-neutral-600 hover:bg-neutral-100'
           }`}
