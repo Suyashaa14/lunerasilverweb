@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ComponentType } from 'react';
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { BookOpen, Boxes, ChevronDown, FileText, Home, LogOut, MoreHorizontal, Plus, Settings, ShoppingBag, Wallet, X } from 'lucide-react';
+import { BookOpen, Boxes, ChevronDown, CircleUser, FileText, Home, LogOut, Plus, Settings, ShoppingBag, Wallet, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { apiGet } from '../../api/client';
 import { AlertsBell } from './AlertsBell';
@@ -97,15 +97,17 @@ const SETTINGS: SectionDef = {
   ],
 };
 
-/** The four things done standing at the counter. Everything else is behind More. */
 /**
- * Four places and one action.
+ * Four real destinations and one action -- no "More".
  *
- * Selling used to sit here as a fifth tab called "Sell", one letter away from
- * "Sales" and right beside it. It is not a place you go, it is the thing you
- * do, so it is now the button in the middle and reads as an action.
+ * Every tab is somewhere you actually go on a phone, in the shop, standing up.
+ * Selling is the thing you do rather than a place, so it is the button in the
+ * middle. The books and the settings are laptop work and live in the account
+ * menu in the header, where an account menu belongs, instead of pretending to
+ * be a fifth destination.
  */
 const PHONE_TABS: Array<ChildDef & { label: string; icon: ComponentType<{ className?: string }>; section?: string; badge?: 'payments' }> = [
+  { to: '/admin', label: 'Dashboard', icon: Home, section: 'dashboard' },
   { to: '/admin/invoices', label: 'Sales', icon: FileText, not: ['/admin/invoices/new'] },
   { to: '/admin/jewelries', label: 'Stock', icon: Boxes, section: 'stock' },
   { to: '/admin/payments', label: 'Money', icon: Wallet, section: 'money', badge: 'payments' },
@@ -141,14 +143,14 @@ export function AdminLayout() {
   const { user, loading, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [moreOpen, setMoreOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const [pendingPayments, setPendingPayments] = useState(0);
 
   const current = sectionFor(location.pathname);
   // One section open at a time, and the one you are in opens itself.
   const [openId, setOpenId] = useState<string | null>(current?.id ?? null);
 
-  useEffect(() => setMoreOpen(false), [location.pathname]);
+  useEffect(() => setAccountOpen(false), [location.pathname]);
   useEffect(() => {
     if (current?.children) setOpenId(current.id);
   }, [current?.id]);
@@ -314,13 +316,23 @@ export function AdminLayout() {
 
   const phoneActive = (t: (typeof PHONE_TABS)[number]) =>
     t.section ? current?.id === t.section : childActive(t, location.pathname);
-  const moreActive = location.pathname !== NEW_SALE && !PHONE_TABS.some(phoneActive);
+
 
   return (
     <div className="admin-shell min-h-screen bg-neutral-50 text-neutral-900 md:flex">
       <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-neutral-200 bg-white sticky top-0 z-30">
         <div className="text-sm font-semibold">{current?.label ?? 'Admin'}</div>
-        {!ownsHeader && <AlertsBell />}
+        <div className="flex items-center gap-1">
+          {!ownsHeader && <AlertsBell />}
+          <button
+            type="button"
+            onClick={() => setAccountOpen(true)}
+            aria-label="Books, settings and account"
+            className="p-2 rounded-md text-neutral-600 hover:bg-neutral-100"
+          >
+            <CircleUser className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       <aside className="hidden md:flex md:static w-60 shrink-0 border-r border-neutral-200 bg-white flex-col">
@@ -401,49 +413,40 @@ export function AdminLayout() {
           );
         })}
 
-        <button
-          type="button"
-          onClick={() => setMoreOpen(true)}
-          className={`flex-1 flex flex-col items-center gap-1 py-2 pb-2.5 text-[10.5px] font-medium ${
-            moreActive ? 'text-neutral-900' : 'text-neutral-400'
-          }`}
-        >
-          <MoreHorizontal className="w-[19px] h-[19px]" />
-          More
-        </button>
       </nav>
 
-      {moreOpen && (
+      {/* The account menu: the laptop work, and who is signed in. Everything a
+          phone needs day to day is already a tab. */}
+      {accountOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setMoreOpen(false)} aria-hidden="true" />
+          <div className="absolute inset-0 bg-black/40" onClick={() => setAccountOpen(false)} aria-hidden="true" />
           <div className="relative bg-white rounded-t-2xl border-t border-neutral-200 p-4 pb-6 max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-semibold">More</div>
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <div className="min-w-0">
+                <div className="text-sm font-semibold truncate">{user.email}</div>
+                <div className="text-xs text-neutral-400 capitalize">{user.role}</div>
+              </div>
               <button
-                onClick={() => setMoreOpen(false)}
-                className="p-1.5 -mr-1.5 rounded-md text-neutral-500 hover:bg-neutral-100"
+                onClick={() => setAccountOpen(false)}
+                className="p-1.5 -mr-1.5 rounded-md text-neutral-500 hover:bg-neutral-100 shrink-0"
                 aria-label="Close"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="flex flex-col gap-0.5">
-              {sections.map((s) => navSection(s, () => setMoreOpen(false)))}
-              {visible(SETTINGS) && navSection(SETTINGS, () => setMoreOpen(false))}
+              {sections
+                .filter((s) => !PHONE_TABS.some((t) => t.section === s.id) && s.id !== 'sales')
+                .map((s) => navSection(s, () => setAccountOpen(false)))}
+              {visible(SETTINGS) && navSection(SETTINGS, () => setAccountOpen(false))}
             </div>
-            <div className="mt-4 pt-3 border-t border-neutral-200 flex items-center justify-between">
-              <div className="min-w-0">
-                <div className="text-xs text-neutral-500 truncate">{user.email}</div>
-                <div className="text-[11px] text-neutral-400 capitalize">{user.role}</div>
-              </div>
-              <button
-                onClick={() => logout()}
-                className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-neutral-600 hover:bg-neutral-100"
-              >
-                <LogOut className="w-4 h-4" />
-                Sign out
-              </button>
-            </div>
+            <button
+              onClick={() => logout()}
+              className="mt-4 w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-neutral-200 text-sm font-medium text-neutral-700"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign out
+            </button>
           </div>
         </div>
       )}
