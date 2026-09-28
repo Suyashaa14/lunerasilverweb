@@ -6,7 +6,7 @@ import { num } from '../../components/admin/format';
 
 interface Row {
   id: number; supplierName: string; billNo: string;
-  billDateBs: string; totalAmount: number; paymentStatus: string;
+  billDateBs: string; totalAmount: number; paymentStatus: string; isVoid: boolean;
 }
 
 export function PurchaseList() {
@@ -23,13 +23,14 @@ export function PurchaseList() {
 
   if (loading) return <Loading />;
 
-  const total = rows.reduce((s, r) => s + r.totalAmount, 0);
+  const standing = rows.filter((r) => !r.isVoid);
+  const total = standing.reduce((s, r) => s + r.totalAmount, 0);
 
   return (
     <div className="max-w-[1100px]">
       <PageHeader
         title="Purchases"
-        subtitle={rows.length === 0 ? 'Supplier bills. This is where cost price comes from.' : `${rows.length} bills · ${num(total)} spent`}
+        subtitle={rows.length === 0 ? 'Supplier bills. This is where cost price comes from.' : `${standing.length} bills · ${num(total)} spent`}
         actions={<Link to="/admin/purchases/new" className={BUTTON.primary}>New bill</Link>}
       />
 
@@ -62,8 +63,8 @@ export function PurchaseList() {
                     </td>
                     <td className="px-5 py-3">{r.supplierName}</td>
                     <td className="px-5 py-3 font-mono tabular-nums text-neutral-600">{r.billDateBs}</td>
-                    <td className="px-5 py-3 text-right font-mono tabular-nums font-semibold">{num(r.totalAmount)}</td>
-                    <td className="px-5 py-3 text-right"><StatusPill status={r.paymentStatus} /></td>
+                    <td className={`px-5 py-3 text-right font-mono tabular-nums font-semibold ${r.isVoid ? 'line-through text-neutral-400' : ''}`}>{num(r.totalAmount)}</td>
+                    <td className="px-5 py-3 text-right"><StatusPill status={r.isVoid ? 'void' : r.paymentStatus === 'partial' ? 'part paid' : r.paymentStatus} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -75,11 +76,11 @@ export function PurchaseList() {
               <Link key={r.id} to={`/admin/purchases/${r.id}`} className="block bg-white border border-neutral-200 rounded-xl px-4 py-3.5">
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-mono tabular-nums text-neutral-900">{r.billNo}</span>
-                  <StatusPill status={r.paymentStatus} />
+                  <StatusPill status={r.isVoid ? 'void' : r.paymentStatus === 'partial' ? 'part paid' : r.paymentStatus} />
                 </div>
                 <div className="flex items-center justify-between gap-3 mt-1.5">
                   <span className="text-sm text-neutral-600 truncate">{r.supplierName}</span>
-                  <span className="font-mono tabular-nums font-semibold">{num(r.totalAmount)}</span>
+                  <span className={`font-mono tabular-nums font-semibold ${r.isVoid ? 'line-through text-neutral-400' : ''}`}>{num(r.totalAmount)}</span>
                 </div>
               </Link>
             ))}
