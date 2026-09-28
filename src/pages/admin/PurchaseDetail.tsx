@@ -24,7 +24,6 @@ const PAYMENT_STATUS = [
   { value: 'paid', label: 'Paid' },
 ];
 const PAYMENT_METHOD = [
-  { value: '', label: 'Not paid yet' },
   { value: 'cash', label: 'Cash' },
   { value: 'bank_transfer', label: 'Bank transfer' },
   { value: 'esewa_qr', label: 'eSewa' },

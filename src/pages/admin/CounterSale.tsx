@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError, apiGet, apiPost } from '../../api/client';
 import { money } from '../../components/admin/format';
+import { NewPieceSheet, draftCost, draftPrice, type PieceDraft, type Supplier } from '../../components/admin/NewPieceSheet';
 
 interface Piece {
   id: number;
@@ -11,6 +12,29 @@ interface Piece {
   price: number;
   status: string;
 }
+
+/**
+ * One line on the sale: a piece already on the shelf, or one typed in here
+ * with where it came from. A typed-in piece gets its id once its bill is saved;
+ * kept on the line so a retry after a failed sale does not enter it twice.
+ */
+interface SaleLine {
+  key: number;
+  piece?: Piece;
+  draft?: PieceDraft;
+  createdId?: number;
+  /** What it is being sold for, as typed. */
+  price: string;
+  /** The price it would carry untouched. A change from this is sent as the
+      price actually charged -- an old sale at an old rate, a bargain. */
+  basePrice: number;
+}
+
+const todayLocal = () => {
+  const d = new Date();
+  const pad = (x: number) => String(x).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
 
 const METHODS = [
   { value: 'cash', label: 'Cash' },
@@ -52,7 +76,13 @@ export function CounterSaleForm({
 }) {
   const [pieces, setPieces] = useState<Piece[]>([]);
   const [search, setSearch] = useState('');
-  const [picked, setPicked] = useState<Piece[]>([]);
+  const [lines, setLines] = useState<SaleLine[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [todayRate, setTodayRate] = useState(0);
+  const [saleDate, setSaleDate] = useState(todayLocal());
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editing, setEditing] = useState<PieceDraft | null>(null);
+  const [lastSource, setLastSource] = useState<Pick<PieceDraft, 'supplierId' | 'billNo' | 'billDate' | 'supplierPaid'> | null>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
@@ -72,14 +102,92 @@ export function CounterSaleForm({
     // figure it is about to issue. A failed read shows no levy rather than a
     // guessed one.
     apiGet('/settings')
-      .then((res: { skillPromoRate?: number }) => setSkillPromoRate(Number(res?.skillPromoRate ?? 0)))
+      .then((res: { skillPromoRate?: number; silverRatePerGram?: number }) => {
+        setSkillPromoRate(Number(res?.skillPromoRate ?? 0));
+        setTodayRate(Number(res?.silverRatePerGram ?? 0));
+      })
       .catch(() => setSkillPromoRate(0));
+
+    apiGet('/suppliers').then(setSuppliers).catch(() => setSuppliers([]));
   }, []);
 
   const available = pieces.filter(
-    (p) => !picked.some((s) => s.id === p.id) && p.name.toLowerCase().includes(search.toLowerCase()),
+    (p) => !lines.some((l) => l.piece?.id === p.id) && p.name.toLowerCase().includes(search.toLowerCase()),
   );
-  const subtotal = picked.reduce((sum, p) => sum + p.price, 0);
+  const linePrice = (l: SaleLine) => Math.max(0, Number(l.price) || 0);
+  const subtotal = lines.reduce((sum, l) => sum + linePrice(l), 0);
+  const newCount = lines.filter((l) => l.draft).length;
+
+  const addPiece = (p: Piece) =>
+    setLines([...lines, { key: p.id, piece: p, price: String(p.price), basePrice: p.price }]);
+
+  const openNew = () => { setEditing(null); setSheetOpen(true); };
+  const openEdit = (d: PieceDraft) => { setEditing(d); setSheetOpen(true); };
+
+  const saveDraft = (d: PieceDraft) => {
+    const base = draftPrice(d, todayRate);
+    setLines((ls) => {
+      const existing = ls.find((l) => l.draft?.key === d.key);
+      if (!existing) return [...ls, { key: d.key, draft: d, price: String(base), basePrice: base }];
+      // Keep a price typed by hand; otherwise follow the new figures.
+      const edited = Number(existing.price) !== existing.basePrice;
+      return ls.map((l) => (l.key === existing.key ? { ...l, draft: d, basePrice: base, price: edited ? l.price : String(base) } : l));
+    });
+    setLastSource({ supplierId: d.supplierId, billNo: d.billNo, billDate: d.billDate, supplierPaid: d.supplierPaid });
+    setSheetOpen(false);
+  };
+
+  /**
+   * Puts the typed-in pieces on the shelf through their supplier bills, one bill
+   * per supplier and bill number, and returns each line's piece id. A bill
+   * already entered gets the new pieces added to it.
+   */
+  const createNewPieces = async (current: SaleLine[]): Promise<SaleLine[]> => {
+    const pending = current.filter((l) => l.draft && !l.createdId);
+    const groups = new Map<string, SaleLine[]>();
+    for (const l of pending) {
+      const d = l.draft!;
+      const k = `${d.supplierId}|${d.billNo}|${d.billNo ? '' : d.billDate}`;
+      groups.set(k, [...(groups.get(k) ?? []), l]);
+    }
+
+    let next = current;
+    for (const group of groups.values()) {
+      const first = group[0].draft!;
+      // No paper bill: a number is made up so the piece still has a source.
+      const billNo = first.billNo || `NB-${first.billDate.replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const bill = await apiPost('/purchases', {
+        supplierId: first.supplierId,
+        billNo,
+        billDate: first.billDate,
+        addToExisting: true,
+        paymentStatus: first.supplierPaid ? 'paid' : 'unpaid',
+        notes: 'Entered at the till with a sale',
+        items: group.map(({ draft: d }) => ({
+          description: d!.name,
+          stockIn: {
+            name: d!.name,
+            category: d!.category,
+            purity: d!.purity || undefined,
+            silverWeightGrams: d!.silverWeightGrams,
+            ratePerGram: d!.ratePerGram,
+            makingCharge: d!.makingCharge,
+            stoneWeightGrams: d!.stoneWeightGrams,
+            stonePrice: d!.stonePrice,
+            profitAmount: d!.profitAmount,
+          },
+        })),
+      });
+      // The pieces just added are the bill's last lines, in the order sent.
+      const ids: number[] = bill.items.slice(-group.length).map((i: { jewelryId: number }) => i.jewelryId);
+      next = next.map((l) => {
+        const at = group.findIndex((g) => g.key === l.key);
+        return at === -1 ? l : { ...l, createdId: ids[at] };
+      });
+      setLines(next);
+    }
+    return next;
+  };
   const discountValue = Math.max(0, Number(discount) || 0);
   const goods = Math.max(0, subtotal - discountValue);
   // Charged on the goods after the discount, matching how the invoice does it.
@@ -91,7 +199,7 @@ export function CounterSaleForm({
     e.preventDefault();
     setError(null);
 
-    if (picked.length === 0) {
+    if (lines.length === 0) {
       setError('Add at least one piece to the sale.');
       return;
     }
@@ -106,16 +214,22 @@ export function CounterSaleForm({
 
     setSaving(true);
     try {
-      const shares = splitDiscount(picked.map((p) => p.price), discountValue);
+      const ready = await createNewPieces(lines);
+      const shares = splitDiscount(ready.map(linePrice), discountValue);
 
       const invoice = await apiPost('/invoices', {
+        ...(saleDate !== todayLocal() ? { issuedAt: saleDate } : {}),
         customer: {
           name: name.trim(),
           phone: phone.trim() || null,
           addressLine: address.trim() || null,
         },
         paymentMethod: method,
-        items: picked.map((p, i) => ({ jewelryId: p.id, discount: shares[i] })),
+        items: ready.map((l, i) => ({
+          jewelryId: l.piece?.id ?? l.createdId,
+          ...(linePrice(l) !== l.basePrice ? { unitPrice: linePrice(l) } : {}),
+          discount: shares[i],
+        })),
       });
 
       // Cash in hand is recorded straight away; anything else is confirmed
@@ -156,47 +270,120 @@ export function CounterSaleForm({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-2 space-y-5">
             <div className="bg-white border border-neutral-200 rounded-xl">
-              <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between gap-4">
+              <div className="px-4 sm:px-5 py-4 border-b border-neutral-100 flex items-center justify-between gap-4">
                 <h2 className="text-[15px] font-semibold">Pieces</h2>
-                <span className="font-mono tabular-nums text-sm text-neutral-500">{picked.length} on this sale</span>
+                <span className="font-mono tabular-nums text-sm text-neutral-500">{lines.length} on this sale</span>
               </div>
 
-              {picked.length > 0 && (
+              {lines.length > 0 && (
                 <ul className="divide-y divide-neutral-100">
-                  {picked.map((p) => (
-                    <li key={p.id} className="flex items-center justify-between gap-4 px-5 py-3">
-                      <div className="min-w-0">
-                        <div className="text-[15px] text-neutral-900 truncate">{p.name}</div>
-                        <div className="text-xs text-neutral-500 capitalize">{p.category} · {p.silverWeightGrams} g</div>
-                      </div>
-                      <div className="flex items-center gap-4 shrink-0">
-                        <span className="font-mono tabular-nums text-[15px]">{money(p.price)}</span>
-                        <button type="button" onClick={() => setPicked(picked.filter((x) => x.id !== p.id))} className="text-sm text-neutral-500 underline underline-offset-2">
-                          Remove
-                        </button>
-                      </div>
-                    </li>
-                  ))}
+                  {lines.map((l) => {
+                    const title = l.piece?.name ?? l.draft!.name;
+                    const meta = l.piece
+                      ? `${l.piece.category} · ${l.piece.silverWeightGrams} g`
+                      : `${l.draft!.category} · ${l.draft!.silverWeightGrams} g · cost ${money(draftCost(l.draft!))}`;
+                    return (
+                      <li key={l.key} className="px-4 sm:px-5 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-[15px] text-neutral-900 truncate">{title}</span>
+                              {l.draft && (
+                                <span className="shrink-0 px-1.5 py-0.5 rounded border border-emerald-200 bg-emerald-50 text-emerald-700 text-[11px] font-medium">New</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-neutral-500 capitalize truncate">{meta}</div>
+                            {l.draft && (
+                              <div className="text-xs text-neutral-500 truncate">
+                                From {l.draft.supplierName}{l.draft.billNo ? `, bill ${l.draft.billNo}` : ', no bill number'}
+                              </div>
+                            )}
+                          </div>
+                          <label className="shrink-0 text-right">
+                            <span className="sr-only">Price for {title}</span>
+                            <input
+                              inputMode="decimal"
+                              value={l.price}
+                              onChange={(e) => {
+                                const price = e.target.value.replace(/[^\d.]/g, '');
+                                setLines((ls) => ls.map((x) => (x.key === l.key ? { ...x, price } : x)));
+                              }}
+                              className="w-28 px-2.5 py-2 rounded-lg border border-neutral-200 text-base sm:text-sm text-right font-mono tabular-nums"
+                            />
+                            {linePrice(l) !== l.basePrice && (
+                              <span className="block text-[11px] text-amber-700 mt-0.5">was {money(l.basePrice)}</span>
+                            )}
+                          </label>
+                        </div>
+                        <div className="flex gap-4 mt-1.5">
+                          {l.draft && !l.createdId && (
+                            <button type="button" onClick={() => openEdit(l.draft!)} className="text-sm text-neutral-600 underline underline-offset-2">
+                              Edit
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setLines(lines.filter((x) => x.key !== l.key))}
+                            disabled={Boolean(l.createdId)}
+                            className="text-sm text-neutral-500 underline underline-offset-2 disabled:no-underline disabled:text-neutral-300"
+                          >
+                            {l.createdId ? 'In stock now' : 'Remove'}
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
 
-              <div className="px-5 py-4 border-t border-neutral-100">
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search available pieces"
-                  className="w-full px-3 py-2.5 rounded-lg border border-neutral-200 text-sm"
-                />
-                <div className="mt-3 max-h-64 overflow-y-auto divide-y divide-neutral-100">
+              <div className="px-4 sm:px-5 py-4 border-t border-neutral-100">
+                <div className="flex gap-2">
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search available pieces"
+                    className="min-w-0 flex-1 px-3 py-2.5 rounded-lg border border-neutral-200 text-base sm:text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => (sheetOpen && !editing ? setSheetOpen(false) : openNew())}
+                    aria-expanded={sheetOpen}
+                    className={`shrink-0 whitespace-nowrap px-3.5 py-2.5 rounded-lg border border-neutral-900 text-sm font-semibold ${
+                      sheetOpen && !editing ? 'bg-neutral-900 text-white' : 'bg-white text-neutral-900'
+                    }`}
+                  >
+                    {sheetOpen && !editing ? 'Close' : '+ Create jewellery'}
+                  </button>
+                </div>
+              </div>
+
+              <NewPieceSheet
+                open={sheetOpen}
+                initial={editing}
+                suppliers={suppliers}
+                onSupplierAdded={(sup) => setSuppliers((ss) => [...ss, sup])}
+                todayRate={todayRate}
+                defaultBillDate={saleDate}
+                lastSource={lastSource}
+                onSave={saveDraft}
+                onClose={() => setSheetOpen(false)}
+              />
+
+              {!sheetOpen && (
+              <div className="px-4 sm:px-5 pb-4">
+                <div className="max-h-64 overflow-y-auto divide-y divide-neutral-100">
                   {available.length === 0 ? (
-                    <div className="py-6 text-sm text-neutral-400 text-center">Nothing available to add.</div>
+                    <div className="py-6 text-sm text-neutral-400 text-center">
+                      {search ? 'Nothing matches.' : 'Nothing available to add.'}{' '}
+                      <button type="button" onClick={openNew} className="text-neutral-700 underline underline-offset-2">Create it</button>
+                    </div>
                   ) : (
                     available.map((p) => (
                       <button
                         key={p.id}
                         type="button"
-                        onClick={() => setPicked([...picked, p])}
-                        className="w-full flex items-center justify-between gap-4 py-2.5 text-left hover:bg-neutral-50"
+                        onClick={() => addPiece(p)}
+                        className="w-full flex items-center justify-between gap-4 py-3 sm:py-2.5 text-left hover:bg-neutral-50"
                       >
                         <span className="text-sm text-neutral-800 truncate">{p.name}</span>
                         <span className="font-mono tabular-nums text-sm text-neutral-600">{money(p.price)}</span>
@@ -205,6 +392,7 @@ export function CounterSaleForm({
                   )}
                 </div>
               </div>
+              )}
             </div>
 
             <div className="bg-white border border-neutral-200 rounded-xl">
@@ -259,7 +447,8 @@ export function CounterSaleForm({
                 <div className="mt-3 pt-4 border-t border-neutral-100">
                   <div className="font-mono tabular-nums text-4xl font-semibold tracking-tight">{money(total)}</div>
                   <div className="text-sm text-neutral-500 mt-1">
-                    {picked.length} piece{picked.length === 1 ? '' : 's'}
+                    {lines.length} piece{lines.length === 1 ? '' : 's'}
+                    {newCount > 0 && <> · {newCount} new to stock</>}
                     {discountValue > 0 && <> · {money(discountValue)} off</>}
                   </div>
                 </div>
@@ -271,6 +460,14 @@ export function CounterSaleForm({
                 <h2 className="text-[15px] font-semibold">Payment</h2>
               </div>
               <div className="px-5 py-4 space-y-3">
+                <label className="block">
+                  <span className="text-sm text-neutral-600">Sale date</span>
+                  <input type="date" value={saleDate} max={todayLocal()} onChange={(e) => setSaleDate(e.target.value || todayLocal())}
+                    className="mt-1 w-full px-3 py-2.5 rounded-lg border border-neutral-200 text-base sm:text-sm bg-white" />
+                  {saleDate !== todayLocal() && (
+                    <span className="text-xs text-amber-700 mt-1 block">Logging an earlier sale. Check each price is what you charged then.</span>
+                  )}
+                </label>
                 <label className="block">
                   <span className="text-sm text-neutral-600">Method</span>
                   <select value={method} onChange={(e) => setMethod(e.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-lg border border-neutral-200 text-sm bg-white">
@@ -296,7 +493,7 @@ export function CounterSaleForm({
         // Stays on screen while the piece list scrolls above it.
         <div className="sticky bottom-0 mt-5 flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-t border-neutral-200 bg-white/95 backdrop-blur">
           <div className="text-sm text-neutral-500">
-            {picked.length} piece{picked.length === 1 ? '' : 's'} · <span className="font-mono tabular-nums text-neutral-900 font-semibold">{money(total)}</span>
+            {lines.length} piece{lines.length === 1 ? '' : 's'} · <span className="font-mono tabular-nums text-neutral-900 font-semibold">{money(total)}</span>
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={onCancel} className="px-4 py-2.5 rounded-lg border border-neutral-200 bg-white text-sm font-medium">
@@ -317,6 +514,7 @@ export function CounterSaleForm({
           </button>
         </div>
       )}
+
     </form>
   );
 }
