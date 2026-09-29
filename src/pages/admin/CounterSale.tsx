@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError, apiGet, apiPost } from '../../api/client';
 import { money } from '../../components/admin/format';
-import { NewPieceSheet, draftCost, draftPrice, type PieceDraft, type Supplier } from '../../components/admin/NewPieceSheet';
+import { NewPieceSheet, draftCost, type PieceDraft, type Supplier } from '../../components/admin/NewPieceSheet';
 
 interface Piece {
   id: number;
@@ -125,7 +125,7 @@ export function CounterSaleForm({
   const openEdit = (d: PieceDraft) => { setEditing(d); setSheetOpen(true); };
 
   const saveDraft = (d: PieceDraft) => {
-    const base = draftPrice(d, todayRate);
+    const base = d.totalAmount;
     setLines((ls) => {
       const existing = ls.find((l) => l.draft?.key === d.key);
       if (!existing) return [...ls, { key: d.key, draft: d, price: String(base), basePrice: base }];
@@ -227,7 +227,9 @@ export function CounterSaleForm({
         paymentMethod: method,
         items: ready.map((l, i) => ({
           jewelryId: l.piece?.id ?? l.createdId,
-          ...(linePrice(l) !== l.basePrice ? { unitPrice: linePrice(l) } : {}),
+          // A new piece always goes at the total typed for it; an existing one
+          // only when its price was changed here.
+          ...(l.draft || linePrice(l) !== l.basePrice ? { unitPrice: linePrice(l) } : {}),
           discount: shares[i],
         })),
       });

@@ -26,6 +26,10 @@ export interface PieceDraft {
   makingCharge: number;
   stoneWeightGrams: number | null;
   stonePrice: number | null;
+  /** What the buyer pays for it, as typed. */
+  totalAmount: number;
+  /** Worked out from the total, never typed: the part of today's price that
+      is not silver, making or stone. Stored on the piece as its margin. */
   profitAmount: number;
 }
 
@@ -37,9 +41,9 @@ const round2 = (x: number) => Math.round(x * 100) / 100;
 export const draftCost = (d: PieceDraft) =>
   round2(d.silverWeightGrams * d.ratePerGram + d.makingCharge + (d.stonePrice ?? 0));
 
-/** What it sells for today. The same sum the server does when no price is given. */
-export const draftPrice = (d: PieceDraft, todayRate: number) =>
-  round2(d.silverWeightGrams * todayRate + d.makingCharge + (d.stonePrice ?? 0) + d.profitAmount);
+/** Today's price before any margin: silver at today's rate, plus making and stone. */
+const basePrice = (weight: number, making: number, stone: number, todayRate: number) =>
+  round2(weight * todayRate + making + stone);
 
 const n = (v: string) => (v.trim() === '' ? 0 : Number(v));
 const str = (v: number | null | undefined) => (v === null || v === undefined || v === 0 ? '' : String(v));
@@ -86,7 +90,7 @@ export function NewPieceSheet({
   const [making, setMaking] = useState('');
   const [stoneWeight, setStoneWeight] = useState('');
   const [stonePrice, setStonePrice] = useState('');
-  const [profit, setProfit] = useState('');
+  const [total, setTotal] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -109,7 +113,7 @@ export function NewPieceSheet({
     setMaking(str(d?.makingCharge));
     setStoneWeight(str(d?.stoneWeightGrams));
     setStonePrice(str(d?.stonePrice));
-    setProfit(str(d?.profitAmount));
+    setTotal(str(d?.totalAmount));
     setNewSupplier('');
     setAddingSupplier(false);
     setError(null);
@@ -138,8 +142,13 @@ export function NewPieceSheet({
     makingCharge: n(making),
     stoneWeightGrams: n(stoneWeight) || null,
     stonePrice: n(stonePrice) || null,
-    profitAmount: n(profit),
+    totalAmount: round2(n(total)),
+    // Never below zero: the piece's own margin cannot be negative. A sale below
+    // today's price still goes through at the typed total.
+    profitAmount: Math.max(0, round2(n(total) - basePrice(n(weight), n(making), n(stonePrice), todayRate))),
   };
+  const cost = draftCost(draft);
+  const profit = round2(draft.totalAmount - cost);
 
   const addSupplier = async () => {
     if (newSupplier.trim() === '') return setError('Type the supplier’s name.');
@@ -163,6 +172,7 @@ export function NewPieceSheet({
     if (draft.name === '') return setError('Give the piece a name.');
     if (draft.silverWeightGrams <= 0) return setError('Enter the silver weight.');
     if (draft.ratePerGram <= 0) return setError('Enter the silver rate you paid.');
+    if (draft.totalAmount <= 0) return setError('Enter the total amount it sells for.');
     onSave(draft);
   };
 
@@ -284,12 +294,15 @@ export function NewPieceSheet({
                 <span className="text-sm text-neutral-600">Stone cost</span>
                 <input inputMode="decimal" value={stonePrice} onChange={(e) => setStonePrice(e.target.value)} className={NUM} />
               </label>
-              <label className="block col-span-2">
-                <span className="text-sm text-neutral-600">Your profit</span>
-                <input inputMode="decimal" value={profit} onChange={(e) => setProfit(e.target.value)} className={NUM} />
-                <span className="text-xs text-neutral-400 mt-1 block">Added on top of the cost when it sells.</span>
-              </label>
             </div>
+          </section>
+
+          <section>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-400 mb-2">What you sell it for</h3>
+            <label className="block">
+              <span className="text-sm text-neutral-600">Total amount</span>
+              <input inputMode="decimal" value={total} onChange={(e) => setTotal(e.target.value)} placeholder="What the buyer pays" className={`${NUM} text-lg sm:text-base font-semibold`} />
+            </label>
           </section>
 
           <section className="rounded-xl bg-neutral-50 px-4 py-3 text-sm space-y-1.5">
@@ -298,10 +311,19 @@ export function NewPieceSheet({
               <span className="font-mono tabular-nums font-semibold">{money(draftCost(draft))}</span>
             </div>
             <div className="flex justify-between gap-3">
-              <span className="text-neutral-600">Sells today at {money(todayRate)}/g</span>
-              <span className="font-mono tabular-nums font-semibold">{money(draftPrice(draft, todayRate))}</span>
+              <span className="text-neutral-600">Total amount</span>
+              <span className="font-mono tabular-nums font-semibold">{money(draft.totalAmount)}</span>
             </div>
-            <p className="text-xs text-neutral-400">You can change the price on the sale if you sold it for something else.</p>
+            <div className="flex justify-between gap-3 pt-1.5 border-t border-neutral-200">
+              <span className="font-medium text-neutral-900">Your profit</span>
+              <span className={`font-mono tabular-nums font-semibold ${profit < 0 ? 'text-red-700' : 'text-emerald-700'}`}>
+                {draft.totalAmount > 0 ? money(profit) : '—'}
+              </span>
+            </div>
+            {draft.totalAmount > 0 && profit < 0 && (
+              <p className="text-xs text-red-700">This is less than you paid for it.</p>
+            )}
+            <p className="text-xs text-neutral-400">Total amount minus what you paid.</p>
           </section>
         </div>
 

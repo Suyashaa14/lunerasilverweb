@@ -4,6 +4,7 @@ import { apiGet } from '../../api/client';
 import { EmptyState, ErrorNote, Loading } from '../../components/admin/ui';
 import { Modal } from '../../components/admin/Modal';
 import { CounterSaleForm } from './CounterSale';
+import { useAuth } from '../../context/AuthContext';
 
 interface Row {
   id: number;
@@ -33,6 +34,7 @@ function Status({ row }: { row: Row }) {
  */
 export function InvoiceList() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [rows, setRows] = useState<Row[]>([]);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
@@ -68,13 +70,20 @@ export function InvoiceList() {
             {owed > 0 && <> · <span className="text-red-700">{num(owed)} still owed</span></>}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setSelling(true)}
-          className="admin-primary-action px-5 py-2.5 rounded-lg bg-neutral-900 text-white text-sm font-semibold"
-        >
-          Enter new sale
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {user?.role === 'admin' && (
+            <Link to="/admin/invoices/old" className="px-4 py-2.5 rounded-lg border border-neutral-200 bg-white text-sm font-medium">
+              Log old bill
+            </Link>
+          )}
+          <button
+            type="button"
+            onClick={() => setSelling(true)}
+            className="admin-primary-action px-5 py-2.5 rounded-lg bg-neutral-900 text-white text-sm font-semibold"
+          >
+            Enter new sale
+          </button>
+        </div>
       </header>
 
       <div className="flex flex-wrap items-center gap-3 mb-5">

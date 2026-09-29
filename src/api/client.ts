@@ -63,7 +63,9 @@ async function handle(res: Response) {
   if (res.status === 204) return null;
   const data = await res.json().catch(() => null);
   if (!res.ok) {
-    throw new ApiError(data?.error || data?.message || `Request failed (${res.status})`, res.status);
+    // Validation failures come back as a list; the first one says what to fix.
+    const firstInvalid = Array.isArray(data?.errors) ? data.errors[0]?.msg : undefined;
+    throw new ApiError(data?.error || data?.message || firstInvalid || `Request failed (${res.status})`, res.status);
   }
   return data;
 }

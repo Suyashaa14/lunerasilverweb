@@ -7,7 +7,7 @@ import { Loading, TableWrap } from '../../components/admin/ui';
 
 interface Item {
   id: number; name: string; sku: string | null;
-  silverWeightGrams: number | null; silverRatePerGram: number | null; makingCharge: number | null;
+  silverWeightGrams: number | null; silverRatePerGram: number | null; makingCharge: number | null; quantity: number;
   unitPrice: number; discount: number; lineTotal: number;
 }
 interface Invoice {
@@ -186,7 +186,10 @@ export function InvoiceDetail() {
             {invoice.items.map((it) => (
               <tr key={it.id}>
                 <td className="px-5 py-3">
-                  <div className="text-neutral-900">{it.name}</div>
+                  <div className="text-neutral-900">
+                    {it.name}
+                    {it.quantity > 1 && <span className="text-neutral-500"> × {it.quantity}</span>}
+                  </div>
                   {it.sku && <div className="text-xs text-neutral-400 font-mono tabular-nums">{it.sku}</div>}
                 </td>
                 <td className="px-5 py-3 text-right font-mono tabular-nums text-neutral-600 hidden sm:table-cell">
