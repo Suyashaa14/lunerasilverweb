@@ -13,8 +13,8 @@ interface Line {
   quantity: string;
   weightGrams: string;
   amount: string;
-  /** What the shop paid for the line, if known. */
-  cost: string;
+  /** The making charge the shop paid its supplier, if known. */
+  making: string;
 }
 
 const METHODS = [
@@ -23,7 +23,7 @@ const METHODS = [
   { value: 'bank_transfer', label: 'Bank transfer' },
 ];
 
-const emptyLine = (key: number): Line => ({ key, name: '', category: 'rings', quantity: '1', weightGrams: '', amount: '', cost: '' });
+const emptyLine = (key: number): Line => ({ key, name: '', category: 'rings', quantity: '1', weightGrams: '', amount: '', making: '' });
 const n = (v: string) => (v.trim() === '' ? 0 : Number(v));
 const round2 = (x: number) => Math.round(x * 100) / 100;
 const decimal = (v: string) => v.replace(/[^\d.]/g, '');
@@ -41,8 +41,9 @@ const NUM = `${INPUT} font-mono tabular-nums`;
 /**
  * Logs a sale made before the system, straight from its paper bill: what was
  * sold, the weight, the amount, the discount and what the buyer paid, plus what
- * the shop paid when that is known. Each line becomes a sold piece carrying
- * that cost -- or none, never a guess -- and the sale keeps the bill's own
+ * the making charge the shop paid when that is known. Each line becomes a sold
+ * piece costed at silver (that day's rate) plus making -- or with no cost, never
+ * a guess -- and the sale keeps the bill's own
  * number, exactly as written.
  *
  * Built for typing a stack of bills: after each save the form clears but keeps
@@ -92,9 +93,13 @@ export function OldSaleForm() {
   // The levy rate the server will use. Only for showing the split; the
   // server works the figures out itself.
   const [levyRate, setLevyRate] = useState(0);
+  const [vatRate, setVatRate] = useState(0);
   useEffect(() => {
     apiGet('/settings')
-      .then((st: { skillPromoRate?: number }) => setLevyRate(Number(st?.skillPromoRate ?? 0)))
+      .then((st: { skillPromoRate?: number; vatRate?: number }) => {
+        setLevyRate(Number(st?.skillPromoRate ?? 0));
+        setVatRate(Number(st?.vatRate ?? 0));
+      })
       .catch(() => setLevyRate(0));
   }, []);
 
@@ -102,15 +107,18 @@ export function OldSaleForm() {
     setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
 
   /*
-   * The bill is worked out whichever way round it was written.
+   * The bill is worked out whichever way round it was written, always as
    *
-   * Every line has its amount: the total of the lines is known, and the
-   * discount or the final total -- whichever was typed last -- gives the other.
+   *   final = (lines - discount) + levy%   (+ VAT%, once registered)
+   *
+   * Every line has its amount: the lines are known, and the discount or the
+   * final total -- whichever was typed last -- gives the other.
    *
    * Some lines have no amount, but the final total is typed: the lines must add
-   * up to final + discount, so what is missing is shared between the blank
-   * lines by weight (all of it, when only one is blank).
+   * up to final / (1 + levy%) + discount, so what is missing is shared between
+   * the blank lines by weight (all of it, when only one is blank).
    */
+  const onTop = 1 + (levyRate + vatRate) / 100;
   const typedSum = round2(lines.reduce((s, l) => s + (l.amount.trim() === '' ? 0 : n(l.amount)), 0));
   const blanks = lines.filter((l) => l.amount.trim() === '');
   const backTracking = blanks.length > 0 && finalInput.trim() !== '';
@@ -118,7 +126,7 @@ export function OldSaleForm() {
   const worked = new Map<number, number>();
   let shortfall = 0;
   if (backTracking) {
-    shortfall = round2(n(finalInput) + n(discount) - typedSum);
+    shortfall = round2(n(finalInput) / onTop + n(discount) - typedSum);
     if (shortfall > 0) {
       const weights = blanks.map((l) => n(l.weightGrams));
       const totalWeight = weights.reduce((a, b) => a + b, 0);
@@ -136,19 +144,25 @@ export function OldSaleForm() {
 
   const subtotal = round2(lines.reduce((s, l) => s + amountOf(l), 0));
   const finalLeads = !backTracking && lastEdited === 'final' && finalInput.trim() !== '';
-  const discountValue = finalLeads ? round2(subtotal - n(finalInput)) : round2(n(discount));
-  const final = backTracking ? round2(n(finalInput)) : finalLeads ? round2(n(finalInput)) : round2(subtotal - discountValue);
+  const discountValue = finalLeads ? round2(subtotal - n(finalInput) / onTop) : round2(n(discount));
+  // What the jewellery itself sold for, and what goes on top of it.
+  const goods = round2(subtotal - discountValue);
+  const levy = round2((goods * levyRate) / 100);
+  const vat = round2((goods * vatRate) / 100);
+  const final = backTracking || finalLeads ? round2(n(finalInput)) : round2(goods + levy + vat);
 
-  // Profit on the lines whose cost is known, after their share of the
-  // discount -- the same split the server makes.
-  const costedLines = lines.filter((l) => n(l.cost) > 0);
-  const totalCost = round2(costedLines.reduce((s, l) => s + n(l.cost), 0));
+  // Cost of a line: its silver at that day's rate, plus the making charge the
+  // shop paid. Only once a making charge is typed -- the same rule the server
+  // keeps -- and only with a rate to price the silver.
+  const costOf = (l: Line): number | null =>
+    n(l.making) > 0 && rateValue > 0 ? round2(n(l.weightGrams) * rateValue + n(l.making)) : null;
+  const costedLines = lines.filter((l) => costOf(l) !== null);
+  const totalCost = round2(costedLines.reduce((s, l) => s + (costOf(l) ?? 0), 0));
+  // Margin on those lines: what they sold for after their share of the
+  // discount, less their cost. The levy is owed onward, so it is not in it.
   const costedSales = costedLines.reduce((s, l) => s + amountOf(l), 0);
   const costedDiscount = subtotal > 0 ? (discountValue * costedSales) / subtotal : 0;
-  // The levy inside the final total is owed onward, not earned.
-  const goods = round2(final / (1 + levyRate / 100));
-  const levy = round2(final - goods);
-  const profit = round2((costedSales - costedDiscount) / (1 + levyRate / 100) - totalCost);
+  const margin = round2(costedSales - costedDiscount - totalCost);
 
   const typeDiscount = (v: string) => {
     setDiscount(decimal(v));
@@ -179,6 +193,8 @@ export function OldSaleForm() {
         );
       }
     }
+    const needsRate = lines.find((l) => n(l.making) > 0 && rateValue <= 0);
+    if (needsRate) return setError('Enter the silver rate for that day, so the cost can be worked out.');
     if (discountValue < 0) return setError('The final total is more than the lines add up to.');
     if (discountValue > subtotal) return setError('The discount is larger than the bill.');
 
@@ -193,13 +209,14 @@ export function OldSaleForm() {
         paymentMethod: method,
         paid,
         discount: discountValue || undefined,
+        finalTotal: final || null,
         items: lines.map((l) => ({
           name: l.name.trim(),
           category: l.category,
           quantity: Math.floor(n(l.quantity)),
           weightGrams: n(l.weightGrams),
           amount: amountOf(l),
-          costAmount: n(l.cost) > 0 ? n(l.cost) : null,
+          makingCharge: n(l.making) > 0 ? n(l.making) : null,
         })),
       });
       setSaved({ id: invoice.id, invoiceNo: invoice.invoiceNo, total: invoice.totalAmount });
@@ -346,14 +363,22 @@ export function OldSaleForm() {
                       )}
                     </label>
                     <label className="block col-span-2 sm:col-span-3">
-                      <span className="text-sm text-neutral-600">What we paid <span className="text-neutral-400">(optional)</span></span>
-                      <input inputMode="decimal" value={l.cost} onChange={(e) => set(l.key, { cost: decimal(e.target.value) })}
-                        placeholder="Our cost for this" className={NUM} />
-                      {n(l.cost) > 0 && amountOf(l) > 0 && (
-                        <span className={`text-xs mt-1 block ${amountOf(l) - n(l.cost) < 0 ? 'text-red-700' : 'text-emerald-700'}`}>
-                          Profit before discount: {money(round2(amountOf(l) - n(l.cost)))}
+                      <span className="text-sm text-neutral-600">Making charge we paid <span className="text-neutral-400">(optional)</span></span>
+                      <input inputMode="decimal" value={l.making} onChange={(e) => set(l.key, { making: decimal(e.target.value) })}
+                        placeholder="Paid to the supplier" className={NUM} />
+                      {n(l.making) > 0 && (costOf(l) === null ? (
+                        <span className="text-xs text-amber-700 mt-1 block">Enter the silver rate above to work out the cost.</span>
+                      ) : (
+                        <span className="text-xs text-neutral-500 mt-1 block">
+                          Cost: silver {money(round2(n(l.weightGrams) * rateValue))} + making {money(n(l.making))} ={' '}
+                          <span className="font-medium text-neutral-800">{money(costOf(l))}</span>
+                          {amountOf(l) > 0 && (
+                            <span className={amountOf(l) - (costOf(l) ?? 0) < 0 ? 'text-red-700' : 'text-emerald-700'}>
+                              {' '}· margin before discount {money(round2(amountOf(l) - (costOf(l) ?? 0)))}
+                            </span>
+                          )}
                         </span>
-                      )}
+                      ))}
                     </label>
                   </div>
                 </li>
@@ -388,36 +413,45 @@ export function OldSaleForm() {
                   Type the discount or the final total and the other works itself out. Leave a line’s amount empty and it is worked out from these two.
                 </span>
               </label>
-              {levyRate > 0 && final > 0 && (
+              {goods > 0 && (levyRate > 0 || vatRate > 0) && (
                 <div className="rounded-lg bg-neutral-50 px-3 py-2.5 space-y-1">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-neutral-600">Jewellery</span>
+                    <span className="text-neutral-600">Lines less discount</span>
                     <span className="font-mono tabular-nums text-neutral-900">{money(goods)}</span>
                   </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-neutral-600">Skill promotion levy ({levyRate}%)</span>
-                    <span className="font-mono tabular-nums text-neutral-900">{money(levy)}</span>
+                  {levyRate > 0 && (
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-neutral-600">+ Skill promotion levy ({levyRate}%)</span>
+                      <span className="font-mono tabular-nums text-neutral-900">{money(backTracking || finalLeads ? round2(final - goods - vat) : levy)}</span>
+                    </div>
+                  )}
+                  {vatRate > 0 && (
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-neutral-600">+ VAT ({vatRate}%)</span>
+                      <span className="font-mono tabular-nums text-neutral-900">{money(vat)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between gap-3 pt-1 border-t border-neutral-200">
+                    <span className="font-medium text-neutral-900">Final total</span>
+                    <span className="font-mono tabular-nums font-semibold text-neutral-900">{money(final)}</span>
                   </div>
-                  <p className="text-xs text-neutral-400">
-                    Taken out of the final total, not added to it, so the total stays what the bill says.
-                  </p>
                 </div>
               )}
               {costedLines.length > 0 && (
                 <div className="pt-3 border-t border-neutral-100 space-y-1.5">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-neutral-600">What we paid</span>
+                    <span className="text-neutral-600">Our cost (silver + making)</span>
                     <span className="font-mono tabular-nums text-neutral-900">{money(totalCost)}</span>
                   </div>
                   <div className="flex items-center justify-between gap-3">
-                    <span className="font-medium text-neutral-900">Our profit</span>
-                    <span className={`font-mono tabular-nums font-semibold ${profit < 0 ? 'text-red-700' : 'text-emerald-700'}`}>{money(profit)}</span>
+                    <span className="font-medium text-neutral-900">Margin</span>
+                    <span className={`font-mono tabular-nums font-semibold ${margin < 0 ? 'text-red-700' : 'text-emerald-700'}`}>{money(margin)}</span>
                   </div>
-                  {costedLines.length < lines.length && (
-                    <p className="text-xs text-neutral-400">
-                      Only the {costedLines.length} line{costedLines.length === 1 ? '' : 's'} with a cost. The others show no margin.
-                    </p>
-                  )}
+                  <p className="text-xs text-neutral-400">
+                    What the jewellery sold for after discount, less silver at that day’s rate and the making charge. The levy is
+                    not in it, and nor are the shop’s running costs.
+                    {costedLines.length < lines.length && ` Only the ${costedLines.length} line${costedLines.length === 1 ? '' : 's'} with a making charge.`}
+                  </p>
                 </div>
               )}
             </div>
@@ -445,8 +479,8 @@ export function OldSaleForm() {
           <Card>
             <CardHead title="On save" />
             <p className="px-4 sm:px-5 py-4 text-sm text-neutral-600">
-              Each line is added to Jewellery as already sold, with what you paid as its cost price. A line with no cost
-              is saved without one and shows no margin. The sale is saved under bill number <span className="font-mono">{billNo.trim() || '…'}</span>, with the payment on the same date.
+              Each line is added to Jewellery as already sold. With a making charge, its cost is saved as silver at that
+              day’s rate plus the making charge; without one, it has no cost price and shows no margin. The sale is saved under bill number <span className="font-mono">{billNo.trim() || '…'}</span>, with the payment on the same date.
             </p>
           </Card>
         </div>
