@@ -19,7 +19,7 @@ import { SettingsPage } from './pages/admin/SettingsPage';
 import { InvoiceList } from './pages/admin/InvoiceList';
 import { InvoiceDetail } from './pages/admin/InvoiceDetail';
 import { OldSaleForm } from './pages/admin/OldSaleForm';
-import { CounterSale } from './pages/admin/CounterSale';
+import { CounterSale, EditSale } from './pages/admin/CounterSale';
 import { CustomerList } from './pages/admin/CustomerList';
 import { CustomerDetail } from './pages/admin/CustomerDetail';
 import { PaymentList } from './pages/admin/PaymentList';
@@ -79,6 +79,8 @@ function App() {
         <Route path="invoices" element={<InvoiceList />} />
         <Route path="invoices/new" element={<CounterSale />} />
         <Route path="invoices/old" element={<OldSaleForm />} />
+        <Route path="invoices/old/:id" element={<OldSaleForm />} />
+        <Route path="invoices/:id/edit" element={<EditSale />} />
         <Route path="invoices/:id" element={<InvoiceDetail />} />
         <Route path="stock-check" element={<StockCheck />} />
         <Route path="suppliers" element={<SupplierList />} />

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { apiGet } from '../../api/client';
+import { ApiError, apiDelete, apiGet } from '../../api/client';
 import { EmptyState, ErrorNote, Loading } from '../../components/admin/ui';
 import { Modal } from '../../components/admin/Modal';
 import { CounterSaleForm } from './CounterSale';
@@ -17,6 +17,7 @@ interface Row {
   paid: number;
   outstanding: number;
   isVoid: boolean;
+  isOldBill: boolean;
 }
 
 const num = (v: number) => Math.round(v).toLocaleString();
@@ -57,6 +58,21 @@ export function InvoiceList() {
   }, [search, includeVoid]);
 
   useEffect(load, [load]);
+
+  const remove = async (r: Row) => {
+    const what = r.isOldBill ? 'old bill' : 'sale';
+    const extra = r.isOldBill
+      ? 'Its number can be used again.'
+      : 'The pieces go back on the shelf, and its invoice number is not reused.';
+    if (!window.confirm(`Delete ${what} ${r.invoiceNo}? It is removed completely and the books are reversed. ${extra} This cannot be undone.`)) return;
+    try {
+      await apiDelete(`/invoices/${r.id}`);
+      load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not delete that sale.');
+    }
+  };
+  const isAdmin = user?.role === 'admin';
 
   const owed = rows.filter((r) => !r.isVoid).reduce((s, r) => s + r.outstanding, 0);
 
@@ -155,6 +171,16 @@ export function InvoiceList() {
                     </td>
                     <td className="px-5 py-3 text-right"><Status row={r} /></td>
                     <td className="px-5 py-3 text-right whitespace-nowrap">
+                      {!r.isVoid && isAdmin && (
+                        <Link to={r.isOldBill ? `/admin/invoices/old/${r.id}` : `/admin/invoices/${r.id}/edit`} className="mr-4 text-neutral-500 hover:text-neutral-900 underline-offset-2 hover:underline">
+                          Edit
+                        </Link>
+                      )}
+                      {isAdmin && (
+                        <button type="button" onClick={() => remove(r)} className="mr-4 text-red-700 underline-offset-2 hover:underline">
+                          Delete
+                        </button>
+                      )}
                       <Link to={`/admin/invoices/${r.id}`} className="text-neutral-500 hover:text-neutral-900 underline-offset-2 hover:underline">
                         View invoice →
                       </Link>
@@ -168,7 +194,8 @@ export function InvoiceList() {
           {/* Mobile */}
           <div className="md:hidden space-y-3">
             {rows.map((r) => (
-              <Link key={r.id} to={`/admin/invoices/${r.id}`} className="block bg-white border border-neutral-200 rounded-xl px-4 py-3.5">
+              <div key={r.id} className="bg-white border border-neutral-200 rounded-xl">
+              <Link to={`/admin/invoices/${r.id}`} className="block px-4 py-3.5">
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-mono tabular-nums text-[15px] text-neutral-900">{r.invoiceNo}</span>
                   <Status row={r} />
@@ -182,6 +209,15 @@ export function InvoiceList() {
                   <span className="text-xs text-neutral-500">View invoice →</span>
                 </div>
               </Link>
+              {isAdmin && (
+                <div className="flex gap-5 px-4 py-2.5 border-t border-neutral-100 text-sm">
+                  {!r.isVoid && (
+                    <Link to={r.isOldBill ? `/admin/invoices/old/${r.id}` : `/admin/invoices/${r.id}/edit`} className="text-neutral-700 underline underline-offset-2">Edit</Link>
+                  )}
+                  <button type="button" onClick={() => remove(r)} className="text-red-700 underline underline-offset-2">Delete</button>
+                </div>
+              )}
+              </div>
             ))}
           </div>
         </>

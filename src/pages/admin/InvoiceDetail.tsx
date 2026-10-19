@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ApiError, apiGet, apiPost } from '../../api/client';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ApiError, apiDelete, apiGet, apiPost } from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
 import { Dialog, useDialog } from '../../components/admin/Dialog';
 import { money } from '../../components/admin/format';
 import { Loading, TableWrap } from '../../components/admin/ui';
@@ -16,13 +17,15 @@ interface Invoice {
   buyer: { name: string; address: string; pan: string | null };
   subtotal: number; discount: number; taxableAmount: number; vatAmount: number; vatRate: number;
   skillPromoRate: number; skillPromoAmount: number; totalAmount: number;
-  paymentMethod: string; isVoid: boolean; voidReason: string | null; printCount: number; items: Item[];
+  paymentMethod: string; isVoid: boolean; isOldBill: boolean; voidReason: string | null; printCount: number; items: Item[];
 }
 interface Balance { total: number; paid: number; pending: number; outstanding: number; isSettled: boolean }
 interface Payment { id: number; amount: number; method: string; status: string; receivedDateBs: string; note: string | null }
 
 export function InvoiceDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [balance, setBalance] = useState<Balance | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -88,6 +91,29 @@ export function InvoiceDetail() {
     act(() => apiPost(`/invoices/${id}/void`, { reason: answer.reason }));
   };
 
+  const deleteBill = async () => {
+    const old = invoice?.isOldBill;
+    const answer = await dialog.ask({
+      title: old ? 'Delete this old bill' : 'Delete this sale',
+      description: old
+        ? 'The bill is removed completely, along with its payment and the pieces logged for it, and the books are reversed as if it was never typed. Its number is free to use again. This cannot be undone.'
+        : 'The sale is removed completely, along with its payments, the pieces go back on the shelf, and the books are reversed as if it never happened. Its invoice number is not reused, so the numbering will show a gap. This cannot be undone.',
+      confirmLabel: old ? 'Delete bill' : 'Delete sale',
+      tone: 'danger',
+      fields: [],
+    });
+    if (!answer) return;
+    setError(null);
+    setBusy(true);
+    try {
+      await apiDelete(`/invoices/${id}`);
+      navigate('/admin/invoices');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'That did not work.');
+      setBusy(false);
+    }
+  };
+
   const creditNote = async () => {
     const canRefund = Boolean(balance && balance.paid > 0);
     const answer = await dialog.ask({
@@ -133,6 +159,14 @@ export function InvoiceDetail() {
           <button onClick={print} disabled={busy} className="px-4 py-2.5 rounded-lg border border-neutral-200 bg-white text-sm font-medium">Print</button>
           {!invoice.isVoid && balance && !balance.isSettled && (
             <button onClick={takePayment} disabled={busy} className="px-4 py-2.5 rounded-lg bg-neutral-900 text-white text-sm font-semibold">Take payment</button>
+          )}
+          {user?.role === 'admin' && (
+            <>
+              {!invoice.isVoid && (
+                <Link to={invoice.isOldBill ? `/admin/invoices/old/${invoice.id}` : `/admin/invoices/${invoice.id}/edit`} className="px-4 py-2.5 rounded-lg border border-neutral-200 bg-white text-sm font-medium">Edit</Link>
+              )}
+              <button onClick={deleteBill} disabled={busy} className="px-4 py-2.5 rounded-lg border border-red-200 bg-white text-sm font-medium text-red-700">Delete</button>
+            </>
           )}
           {!invoice.isVoid && (
             <>

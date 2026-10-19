@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ApiError, apiGet, apiPost } from '../../api/client';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ApiError, apiGet, apiPost, apiPut } from '../../api/client';
 import { money } from '../../components/admin/format';
 import { NewPieceSheet, draftCost, type PieceDraft, type Supplier } from '../../components/admin/NewPieceSheet';
 
@@ -67,13 +67,20 @@ const splitDiscount = (prices: number[], discount: number): number[] => {
  */
 export function CounterSaleForm({
   mode = 'page',
+  editId,
   onIssued,
   onCancel,
 }: {
   mode?: 'page' | 'modal';
+  /** Set to correct a saved sale instead of entering a new one. */
+  editId?: number;
   onIssued: (invoiceId: number) => void;
   onCancel: () => void;
 }) {
+  const isEdit = editId !== undefined;
+  const [loadingSale, setLoadingSale] = useState(isEdit);
+  const [takenSoFar, setTakenSoFar] = useState(0);
+  const [invoiceNo, setInvoiceNo] = useState('');
   const [pieces, setPieces] = useState<Piece[]>([]);
   const [search, setSearch] = useState('');
   const [lines, setLines] = useState<SaleLine[]>([]);
@@ -110,6 +117,41 @@ export function CounterSaleForm({
 
     apiGet('/suppliers').then(setSuppliers).catch(() => setSuppliers([]));
   }, []);
+
+  // Editing: fill the form from the saved sale.
+  useEffect(() => {
+    if (editId === undefined) return;
+    let live = true;
+    apiGet(`/invoices/${editId}/edit`)
+      .then((s: {
+        invoiceNo: string; date: string; buyerName: string; buyerPhone: string; buyerAddress: string;
+        paymentMethod: string; discount: number; paid: number; isVoid: boolean;
+        items: { jewelryId: number | null; name: string; category: string; silverWeightGrams: number; unitPrice: number }[];
+      }) => {
+        if (!live) return;
+        if (s.isVoid) { setError('This sale is void and cannot be edited.'); return; }
+        setInvoiceNo(s.invoiceNo);
+        setSaleDate(s.date);
+        setName(s.buyerName);
+        setPhone(s.buyerPhone);
+        setAddress(s.buyerAddress);
+        setMethod(s.paymentMethod);
+        setDiscount(s.discount ? String(s.discount) : '');
+        setTakenSoFar(s.paid);
+        setLines(s.items.map((it, i) => ({
+          key: it.jewelryId ?? -(i + 1),
+          piece: {
+            id: it.jewelryId ?? 0, name: it.name, category: it.category,
+            silverWeightGrams: it.silverWeightGrams, price: it.unitPrice, status: 'sold',
+          },
+          price: String(it.unitPrice),
+          basePrice: it.unitPrice,
+        })));
+      })
+      .catch(() => { if (live) setError('Could not load this sale.'); })
+      .finally(() => { if (live) setLoadingSale(false); });
+    return () => { live = false; };
+  }, [editId]);
 
   const available = pieces.filter(
     (p) => !lines.some((l) => l.piece?.id === p.id) && p.name.toLowerCase().includes(search.toLowerCase()),
@@ -217,8 +259,8 @@ export function CounterSaleForm({
       const ready = await createNewPieces(lines);
       const shares = splitDiscount(ready.map(linePrice), discountValue);
 
-      const invoice = await apiPost('/invoices', {
-        ...(saleDate !== todayLocal() ? { issuedAt: saleDate } : {}),
+      const payload = {
+        ...(isEdit || saleDate !== todayLocal() ? { issuedAt: saleDate } : {}),
         customer: {
           name: name.trim(),
           phone: phone.trim() || null,
@@ -229,10 +271,19 @@ export function CounterSaleForm({
           jewelryId: l.piece?.id ?? l.createdId,
           // A new piece always goes at the total typed for it; an existing one
           // only when its price was changed here.
-          ...(l.draft || linePrice(l) !== l.basePrice ? { unitPrice: linePrice(l) } : {}),
+          // When correcting a sale the price is always sent: the server would
+          // otherwise price it at today's silver rate, not what was charged.
+          ...(isEdit || l.draft || linePrice(l) !== l.basePrice ? { unitPrice: linePrice(l) } : {}),
           discount: shares[i],
         })),
-      });
+      };
+
+      if (isEdit) {
+        const updated = await apiPut(`/invoices/${editId}`, payload);
+        onIssued(updated.id);
+        return;
+      }
+      const invoice = await apiPost('/invoices', payload);
 
       // Cash in hand is recorded straight away; anything else is confirmed
       // later against a statement, so it is left off rather than assumed.
@@ -252,21 +303,28 @@ export function CounterSaleForm({
       {!isModal && (
         <header className="flex flex-wrap items-start justify-between gap-4 mb-6">
           <div>
-            <div className="text-sm text-neutral-500">Sales / New sale</div>
-            <h1 className="text-3xl font-semibold tracking-tight">Counter sale</h1>
+            <div className="text-sm text-neutral-500">Sales / {isEdit ? invoiceNo || 'Edit sale' : 'New sale'}</div>
+            <h1 className="text-3xl font-semibold tracking-tight">{isEdit ? 'Edit sale' : 'Counter sale'}</h1>
+            {isEdit && (
+              <p className="text-sm text-neutral-500 mt-1.5">
+                Fix anything that was entered wrong. The invoice keeps its number
+                {takenSoFar > 0 ? ` and the ${money(takenSoFar)} already taken stays against it` : ''}.
+              </p>
+            )}
           </div>
           <div className="hidden md:flex gap-2">
             <button type="button" onClick={onCancel} className="px-4 py-2.5 rounded-lg border border-neutral-200 bg-white text-sm font-medium">
               Cancel
             </button>
             <button type="submit" disabled={saving} className="px-5 py-2.5 rounded-lg bg-neutral-900 text-white text-sm font-semibold disabled:opacity-50">
-              {saving ? 'Saving…' : 'Issue invoice'}
+              {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Issue invoice'}
             </button>
           </div>
         </header>
       )}
 
       <div className={isModal ? 'px-5 sm:px-6 pt-5' : ''}>
+        {loadingSale && <div className="mb-5 text-sm text-neutral-500">Loading the sale…</div>}
         {error && <div className="mb-5 px-4 py-3 rounded-lg bg-red-50 border border-red-100 text-sm text-red-700">{error}</div>}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -476,7 +534,7 @@ export function CounterSaleForm({
                     {METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
                   </select>
                 </label>
-                <label className="flex items-start gap-2.5 text-sm text-neutral-700">
+                {!isEdit && <label className="flex items-start gap-2.5 text-sm text-neutral-700">
                   <input type="checkbox" checked={payNow} onChange={(e) => setPayNow(e.target.checked)} className="mt-0.5" />
                   <span>
                     Paid in full now
@@ -484,7 +542,7 @@ export function CounterSaleForm({
                       Leave unticked to issue the invoice and record the money later.
                     </span>
                   </span>
-                </label>
+                </label>}
               </div>
             </div>
           </div>
@@ -502,7 +560,7 @@ export function CounterSaleForm({
               Cancel
             </button>
             <button type="submit" disabled={saving} className="px-5 py-2.5 rounded-lg bg-neutral-900 text-white text-sm font-semibold disabled:opacity-50">
-              {saving ? 'Saving…' : 'Issue invoice'}
+              {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Issue invoice'}
             </button>
           </div>
         </div>
@@ -512,12 +570,25 @@ export function CounterSaleForm({
             Cancel
           </button>
           <button type="submit" disabled={saving} className="flex-1 px-4 py-3.5 rounded-xl bg-neutral-900 text-white text-[15px] font-semibold disabled:opacity-50">
-            {saving ? 'Saving…' : `Issue invoice · ${money(total)}`}
+            {saving ? 'Saving…' : `${isEdit ? 'Save changes' : 'Issue invoice'} · ${money(total)}`}
           </button>
         </div>
       )}
 
     </form>
+  );
+}
+
+/** Opens a saved counter sale for correction. */
+export function EditSale() {
+  const navigate = useNavigate();
+  const { id } = useParams();
+  return (
+    <CounterSaleForm
+      editId={Number(id)}
+      onIssued={(newId) => navigate(`/admin/invoices/${newId}`)}
+      onCancel={() => navigate(`/admin/invoices/${id}`)}
+    />
   );
 }
 

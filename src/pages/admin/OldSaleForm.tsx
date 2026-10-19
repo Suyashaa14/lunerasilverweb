@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ApiError, apiGet, apiPost } from '../../api/client';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ApiError, apiGet, apiPost, apiPut } from '../../api/client';
 import { BUTTON, Card, CardHead, ErrorNote } from '../../components/admin/ui';
 import { money } from '../../components/admin/format';
 import { CATEGORIES } from '../../components/admin/NewPieceSheet';
@@ -28,6 +28,15 @@ const n = (v: string) => (v.trim() === '' ? 0 : Number(v));
 const round2 = (x: number) => Math.round(x * 100) / 100;
 const decimal = (v: string) => v.replace(/[^\d.]/g, '');
 
+/** The bill after this one in the stack: 0001 -> 0002, A-099 -> A-100. Left as
+    typed when it does not end in a number. */
+const nextBillNo = (no: string) => {
+  const m = no.trim().match(/^(.*?)(\d+)$/);
+  if (!m) return '';
+  const next = String(BigInt(m[2]) + 1n).padStart(m[2].length, '0');
+  return m[1] + next;
+};
+
 const todayLocal = () => {
   const d = new Date();
   const pad = (x: number) => String(x).padStart(2, '0');
@@ -48,9 +57,18 @@ const NUM = `${INPUT} font-mono tabular-nums`;
  *
  * Built for typing a stack of bills: after each save the form clears but keeps
  * the date, and says which bill went in.
+ *
+ * Opened on a saved bill (/invoices/old/:id) it edits that bill instead, so a
+ * slip made while typing can be put right later.
  */
 export function OldSaleForm() {
   const navigate = useNavigate();
+  const { id: editId } = useParams();
+  const editing = Boolean(editId);
+  /** Set while a saved bill's own rate is in the box, so the date lookup
+      does not overwrite it on load. */
+  const keepRate = useRef(false);
+  const [loadingBill, setLoadingBill] = useState(editing);
   const [billNo, setBillNo] = useState('');
   const [date, setDate] = useState(todayLocal());
   const [buyerName, setBuyerName] = useState('');
@@ -75,6 +93,7 @@ export function OldSaleForm() {
   // The rate follows the date: looked up each time the date changes, and
   // overwritten only by a hand-typed figure.
   useEffect(() => {
+    if (keepRate.current) { keepRate.current = false; return; }
     let live = true;
     setRateLoading(true);
     apiGet(`/settings/silver-rate/on?date=${date}`)
@@ -87,6 +106,46 @@ export function OldSaleForm() {
       .finally(() => { if (live) setRateLoading(false); });
     return () => { live = false; };
   }, [date]);
+
+  // Editing: fill the form from the saved bill.
+  useEffect(() => {
+    if (!editId) return;
+    let live = true;
+    apiGet(`/invoices/${editId}/old`)
+      .then((b: {
+        billNo: string; date: string; buyerName: string; buyerPhone: string; location: string;
+        silverRatePerGram: number | null; paymentMethod: string; paid: boolean; discount: number; finalTotal: number;
+        items: { name: string; category: string; quantity: number; weightGrams: number; amount: number; makingCharge: number | null }[];
+      }) => {
+        if (!live) return;
+        keepRate.current = b.date !== date;
+        setBillNo(b.billNo);
+        setDate(b.date);
+        setBuyerName(b.buyerName);
+        setBuyerPhone(b.buyerPhone);
+        setLocation(b.location);
+        setRate(b.silverRatePerGram ? String(b.silverRatePerGram) : '');
+        setRateFrom(null);
+        setMethod(b.paymentMethod);
+        setPaid(b.paid);
+        setDiscount(b.discount ? String(b.discount) : '');
+        setFinalInput(String(b.finalTotal));
+        setLastEdited('final');
+        setLines(b.items.map((it, i) => ({
+          key: i + 1,
+          name: it.name,
+          category: it.category,
+          quantity: String(it.quantity),
+          weightGrams: String(it.weightGrams),
+          amount: String(it.amount),
+          making: it.makingCharge ? String(it.makingCharge) : '',
+        })));
+      })
+      .catch(() => { if (live) setError('Could not load this bill.'); })
+      .finally(() => { if (live) setLoadingBill(false); });
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editId]);
 
   const rateValue = n(rate);
 
@@ -200,7 +259,7 @@ export function OldSaleForm() {
 
     setSaving(true);
     try {
-      const invoice = await apiPost('/invoices/old', {
+      const body = {
         billNo: billNo.trim(),
         date,
         customer: buyerName.trim() ? { name: buyerName.trim(), phone: buyerPhone.trim() || null } : undefined,
@@ -218,10 +277,16 @@ export function OldSaleForm() {
           amount: amountOf(l),
           makingCharge: n(l.making) > 0 ? n(l.making) : null,
         })),
-      });
+      };
+      if (editId) {
+        const updated = await apiPut(`/invoices/${editId}/old`, body);
+        navigate(`/admin/invoices/${updated.id}`);
+        return;
+      }
+      const invoice = await apiPost('/invoices/old', body);
       setSaved({ id: invoice.id, invoiceNo: invoice.invoiceNo, total: invoice.totalAmount });
       // Ready for the next bill in the stack. The date stays: they run in order.
-      setBillNo('');
+      setBillNo(nextBillNo(billNo));
       setBuyerName('');
       setBuyerPhone('');
       setLocation('');
@@ -239,19 +304,22 @@ export function OldSaleForm() {
 
   return (
     <form onSubmit={submit} className="max-w-[1100px] pb-28 md:pb-0">
+      {loadingBill && <div className="mb-5 text-sm text-neutral-500">Loading the bill…</div>}
       <header className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <div className="text-sm text-neutral-500">
-            <Link to="/admin/invoices" className="hover:underline">Sales</Link> / Old bills
+            <Link to="/admin/invoices" className="hover:underline">Sales</Link> / {editing ? <Link to={`/admin/invoices/${editId}`} className="hover:underline">{billNo || 'Old bill'}</Link> : 'Old bills'}
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight">Log an old bill</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">{editing ? 'Edit old bill' : 'Log an old bill'}</h1>
           <p className="text-sm text-neutral-500 mt-1.5">
-            A sale from before this system, typed from the paper bill. It keeps the bill’s own number.
+            {editing
+              ? 'Fix anything that was typed wrong. Saving replaces the bill, and the books are corrected to match.'
+              : 'A sale from before this system, typed from the paper bill. It keeps the bill’s own number.'}
           </p>
         </div>
         <div className="hidden md:flex gap-2">
-          <button type="button" onClick={() => navigate('/admin/invoices')} className={BUTTON.secondary}>Done</button>
-          <button type="submit" disabled={saving} className={BUTTON.primary}>{saving ? 'Saving…' : 'Save old bill'}</button>
+          <button type="button" onClick={() => navigate(editing ? `/admin/invoices/${editId}` : '/admin/invoices')} className={BUTTON.secondary}>{editing ? 'Cancel' : 'Done'}</button>
+          <button type="submit" disabled={saving || loadingBill} className={BUTTON.primary}>{saving ? 'Saving…' : editing ? 'Save changes' : 'Save old bill'}</button>
         </div>
       </header>
 
@@ -487,9 +555,9 @@ export function OldSaleForm() {
       </div>
 
       <div className="md:hidden admin-phone-actions fixed inset-x-0 bottom-0 p-4 bg-neutral-50/95 backdrop-blur border-t border-neutral-200 flex gap-3">
-        <button type="button" onClick={() => navigate('/admin/invoices')} className={BUTTON.secondary}>Done</button>
-        <button type="submit" disabled={saving} className="flex-1 px-4 py-3.5 rounded-xl bg-neutral-900 text-white text-[15px] font-semibold disabled:opacity-50">
-          {saving ? 'Saving…' : `Save old bill · ${money(final)}`}
+        <button type="button" onClick={() => navigate(editing ? `/admin/invoices/${editId}` : '/admin/invoices')} className={BUTTON.secondary}>{editing ? 'Cancel' : 'Done'}</button>
+        <button type="submit" disabled={saving || loadingBill} className="flex-1 px-4 py-3.5 rounded-xl bg-neutral-900 text-white text-[15px] font-semibold disabled:opacity-50">
+          {saving ? 'Saving…' : `${editing ? 'Save changes' : 'Save old bill'} · ${money(final)}`}
         </button>
       </div>
     </form>
